@@ -139,10 +139,7 @@ NOTES:
  *   Rating: 1
  */
 int tmax(void) {
-       int x = 2;
-       int bas = 255;
-       int res = bas >> x;
-  return res;
+  return ~(1 << 31);
   
 }
 /*
@@ -153,8 +150,7 @@ int tmax(void) {
  *   Rating: 1
  */
 int isZero(int x) {
- 
-  return 0;
+  return !x;
 }
 /* 
  * bitXor - x^y using only ~ and & 
@@ -164,7 +160,7 @@ int isZero(int x) {
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return (~(~x&~y)&~(~x&y));
+  return ~ ( ~x & ~y) & ~ (x & y);
 }
 /* 
  * isNotEqual - return 0 if x == y, and 1 otherwise 
@@ -174,8 +170,7 @@ int bitXor(int x, int y) {
  *   Rating: 2
  */
 int isNotEqual(int x, int y) {
-  int n = !(x==y);
-    return n;
+    return !!(x ^ y);
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -186,9 +181,7 @@ int isNotEqual(int x, int y) {
  *  Rating: 2
  */
 int sign(int x) {
-
-  //res = (x!=0 && 
-  return 2;
+  return (x >> 31) | (!!x);
 }
 /* 
  * conditional - same as x ? y : z 
@@ -198,8 +191,9 @@ int sign(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  int j = (x == y  || x==z);
-  return j;
+  int condition = !!x;
+  int same = ~condition + 1;
+  return (same & y) | (~same & z);
 }
 /* 
  * replaceByte(x,n,c) - Replace byte n in x with c
@@ -212,7 +206,10 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int replaceByte(int x, int n, int c) {
-  return 2;
+  int a = n << 3;
+  int b = ((1 << 8 ) + ~0) << a;
+  int d = c << a;
+  return (x & ~b) | d;
 }
 /* 
  * rotateRight - Rotate x to the right by n
@@ -223,5 +220,8 @@ int replaceByte(int x, int n, int c) {
  *   Rating: 3 
  */
 int rotateRight(int x, int n) {
-  return 2;
+  int move = ((1 << 31)  >> n) << 1;
+  int left = x << ((~n + 1) + 32);
+  int right = (x >> n) & ~move;
+  return left | right;
 }

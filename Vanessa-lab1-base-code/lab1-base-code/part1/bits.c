@@ -201,9 +201,9 @@ int sign(int x) {
  */
 int conditional(int x, int y, int z) {
   /**/
-  int condition = !!x;
-  int same = ~condition + 1;
-  return (same & y) | (~same & z);
+    int condition = !!x;
+    int same = ~condition + 1;
+    return (same & y) | (~same & z);
 }
 /* 
  * replaceByte(x,n,c) - Replace byte n in x with c
@@ -217,10 +217,10 @@ int conditional(int x, int y, int z) {
  */
 int replaceByte(int x, int n, int c) {
   /**/
-  int a = n << 3;
-  int b = ((1 << 8 ) + ~0) << a;
-  int d = c << a;
-  return (x & ~b) | d;
+    int a = n << 3;
+    int b = ((1 << 8 ) + ~0) << a;
+    int d = c << a;
+    return (x & ~b) | d;
 }
 /* 
  * rotateRight - Rotate x to the right by n

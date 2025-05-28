@@ -5,7 +5,13 @@
  * extract corresponding bits to fill the rtype struct fields
  */
 Instruction parse_rtype(unsigned int number) {
-  Instruction instr;  
+  Instruction instr;
+  instr.rtype.opcode=number;
+  instr.rtype.rd=number>>7;
+  instr.rtype.funct3=number>>12;
+  instr.rtype.rs1=number>>15;
+  instr.rtype.rs2=number>>20;
+  instr.rtype.funct7=number>>27;
   return instr;
 }
 
@@ -14,6 +20,11 @@ Instruction parse_rtype(unsigned int number) {
  */
 Instruction parse_itype(unsigned int number) {
   Instruction instr;
+  instr.itype.opcode=number;
+  instr.itype.rd=number>>7;
+  instr.itype.funct3=number>>12;
+  instr.itype.rs1=number>>15;
+  instr.itype.imm=number>>20;
   return instr;
 }
 
