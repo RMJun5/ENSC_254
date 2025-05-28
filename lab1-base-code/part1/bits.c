@@ -139,7 +139,7 @@ NOTES:
  *   Rating: 1
  */
 int tmax(void) {
-  return ~(1 << 31);
+  return ~(1 << 31); //shifts bits to the left giving a negative value so bitwise not to flip the value
   
 }
 /*
@@ -150,7 +150,7 @@ int tmax(void) {
  *   Rating: 1
  */
 int isZero(int x) {
-  return !x;
+  return !x; // not x - so if x==0 returns 1 - returns 0 here
 }
 /* 
  * bitXor - x^y using only ~ and & 
@@ -160,7 +160,8 @@ int isZero(int x) {
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return ~ ( ~x & ~y) & ~ (x & y);
+  return ~ ( ~x & ~y) & ~ (x & y); 
+  //not (notx and noty) and not (x and y) matching truth table of XOR
 }
 /* 
  * isNotEqual - return 0 if x == y, and 1 otherwise 
@@ -170,7 +171,8 @@ int bitXor(int x, int y) {
  *   Rating: 2
  */
 int isNotEqual(int x, int y) {
-    return !!(x ^ y);
+    return !!(x ^ y); // boolean of x xor y - if x==y gives !!0 which gives the boolean 0 
+    // !! to make sure its not -
 }
 /* 
  * sign - return 1 if positive, 0 if zero, and -1 if negative
@@ -181,7 +183,7 @@ int isNotEqual(int x, int y) {
  *  Rating: 2
  */
 int sign(int x) {
-  return (x >> 31) | (!!x);
+  return (x >> 31) | (!!x); //gives boolean of x (1 or 0) or x >>31 to find if it's negative (-1)
 }
 /* 
  * conditional - same as x ? y : z 
@@ -191,9 +193,9 @@ int sign(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  int condition = !!x;
-  int same = ~condition + 1;
-  return (same & y) | (~same & z);
+  int con = !!x; // turns into bool representation
+  int eq = ~con + 1; // notting 1 to be -2 because by switching 001 to 110 which is -2 therefore add 1 to get -1
+  return (eq & y) | (~eq & z); // if equal then output y, if not then output z
 }
 /* 
  * replaceByte(x,n,c) - Replace byte n in x with c
@@ -206,10 +208,14 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int replaceByte(int x, int n, int c) {
-  int a = n << 3;
-  int b = ((1 << 8 ) + ~0) << a;
-  int d = c << a;
-  return (x & ~b) | d;
+  int j = n << 3; 
+  int k = ((1 << 8 ) + ~0) << j;
+  int h = c << j;
+  return (x & ~k) | h;
+  /*j shifts byte n by 3 i.e n*2^3
+    k creates a bytemask to isolate the byte at position n 
+      (1<<8)=256 and ~0 =-1 => 255/ 11111111
+     c= 255 */
 }
 /* 
  * rotateRight - Rotate x to the right by n
@@ -220,8 +226,8 @@ int replaceByte(int x, int n, int c) {
  *   Rating: 3 
  */
 int rotateRight(int x, int n) {
-  int move = ((1 << 31)  >> n) << 1;
-  int left = x << ((~n + 1) + 32);
-  int right = (x >> n) & ~move;
-  return left | right;
+  int m = ((1 << 31)  >> n) << 1; // 1*2^31 
+  int l = x << ((~n + 1) + 32);
+  int r = (x >> n) & ~m;
+  return l | r;
 }
