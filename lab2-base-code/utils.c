@@ -37,6 +37,75 @@ Instruction parse_instruction(uint32_t instruction_bits) {
     instruction.rtype.funct7 = instruction_bits & ((1U << 7) - 1);
     break;
   // cases for other types of instructions
+  // i-type 
+  case 0x66:
+    //instruction
+    instruction.itype.rd = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    //
+    instruction.itype.funct3 = instruction_bits & ((1U<<3)-1);
+    instruction_bits >>=3;
+    //
+    instruction.itype.rs1 = instruction_bits & ((1U<<5)-1);
+    instruction_bits>>=5;
+    //
+    instruction.itype.imm = instruction_bits & ((1U<<12)-1);
+    instruction_bits>>=12;
+    break;
+  //u-type
+  case 0x99:
+    //instruction
+    instruction.utype.rd = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    //
+    instruction.utype.imm = instruction_bits & ((1U<<20)-1);
+    instruction_bits>>=20;
+    break;
+  //j-type
+  case 0x132:
+    //instruction
+    instruction.ujtype.rd = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    //
+    instruction.ujtype.imm = instruction_bits & ((1U<<20)-1);
+    instruction_bits >>=20;
+    break;
+  //s-type
+  case 0x165:
+    //instruction
+    instruction.stype.imm5 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    //
+    instruction.stype.funct3 = instruction_bits & ((1U<<3)-1);
+    instruction_bits >>= 3;
+    //
+    instruction.stype.rs1 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    //
+    instruction.stype.rs2 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    //
+    instruction.stype.imm7 = instruction_bits & ((1U<<7)-1);
+    instruction_bits>>=7;
+    break;
+  // B-type
+  case 0x198:
+    //
+    instruction.sbtype.imm5 =instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    //
+    instruction.sbtype.funct3 = instruction_bits & ((1U<<3)-1);
+    instruction_bits>>=3; 
+    //
+    instruction.sbtype.rs1 = instruction_bits & ((1U<<5)-1);
+    instruction_bits>>=5;
+    //
+    instruction.sbtype.rs2 =instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    //
+    instruction.sbtype.imm7 = instruction_bits & ((1U<<7)-1);
+    instruction_bits>>=7;
+    break;
   /* YOUR CODE HERE */
 
   #ifndef TESTING
