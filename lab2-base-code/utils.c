@@ -126,16 +126,30 @@ case 0x73: // I-type: System instructions (ECALL, EBREAK, CSR instructions)
  * interpreted an n-bit integer. */
 int sign_extend_number(unsigned int field, unsigned int n) {
   /* YOUR CODE HERE */
-  unsigned int sign = 0x32;
-  field >> 
-  return 0;
+  if (field >> (n-1) & 1){
+    // if negative, set upper bit to 1
+    return field | (~0U<<n); 
+  }
+  else{
+    //if positive, keep upper bit as 0
+    return field & ((1U<<n)-1);
+  }
 }
 
 /* Return the number of bytes (from the current PC) to the branch label using
  * the given branch instruction */
 int get_branch_offset(Instruction instruction) {
   /* YOUR CODE HERE */
-  return 0;
+  //finding imm from imm7 and imm5 from the branch type instruction (sbtype)
+  unsigned int imm12 = (instruction.sbtype.imm7>>6) & 0x1; //imm12 is highest bit of imm7
+  unsigned int imm11 = instruction.sbtype.imm5 & 0x1; //imm11 is highest bit of imm5
+  unsigned int imm10_5 = instruction.sbtype.imm7 & 0x3f; //imm10_5 is 6 lowest bits of imm7
+  unsigned int imm4_1 = (instruction.sbtype.imm5>>6) & 0xF; //imm4_1 is 4 lowest bits of imm5
+
+  unsigned int imm = (imm12<<11) & (imm11<<10) & (imm10_5<<4) & imm4_1; // concatonate
+
+  int  bytes = sign_extend_number (imm<<1, 12);
+  return bytes;
 }
 
 /* Returns the number of bytes (from the current PC) to the jump label using the
