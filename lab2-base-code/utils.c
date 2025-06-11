@@ -37,6 +37,76 @@ Instruction parse_instruction(uint32_t instruction_bits) {
     instruction.rtype.funct7 = instruction_bits & ((1U << 7) - 1);
     break;
   // cases for other types of instructions
+  // i-type 
+case 0x03: // I-type: Load instructions (LB, LH, LW, LBU, LHU)
+case 0x13: // I-type: Arithmetic immediate instructions (ADDI, SLTI, ANDI, etc.)
+case 0x73: // I-type: System instructions (ECALL, EBREAK, CSR instructions)
+    instruction.itype.rd = instruction_bits & ((1U << 5) - 1);      // rd: bits 11-7
+    instruction_bits >>= 5;
+
+    instruction.itype.funct3 = instruction_bits & ((1U << 3) - 1);  // funct3: bits 14-12
+    instruction_bits >>= 3;
+
+    instruction.itype.rs1 = instruction_bits & ((1U << 5) - 1);     // rs1: bits 19-15
+    instruction_bits >>= 5;
+
+    instruction.itype.imm = instruction_bits & ((1U << 12) - 1);    // imm: bits 31-20
+    break;
+  // U-type
+  case 0x37:
+   //instruction
+    instruction.ujtype.rd = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    
+    instruction.ujtype.imm = instruction_bits & ((1U<<20)-1);
+    instruction_bits >>=20;
+    
+    break;
+  //j-type
+  case 0x6f:
+    //instruction
+    instruction.ujtype.rd = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    
+    instruction.ujtype.imm = instruction_bits & ((1U<<20)-1);
+    instruction_bits >>=20;
+    break;
+  //s-type
+  case 0x23:
+    //instruction
+    instruction.stype.imm5 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    
+    instruction.stype.funct3 = instruction_bits & ((1U<<3)-1);
+    instruction_bits >>= 3;
+    
+    instruction.stype.rs1 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    
+    instruction.stype.rs2 = instruction_bits & ((1U<<5)-1);
+    instruction_bits >>= 5;
+    
+    instruction.stype.imm7 = instruction_bits & ((1U<<7)-1);
+    instruction_bits>>=7;
+    break;
+  // B-type
+  case 0x63:
+    
+    instruction.sbtype.imm5 =instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    
+    instruction.sbtype.funct3 = instruction_bits & ((1U<<3)-1);
+    instruction_bits>>=3; 
+    
+    instruction.sbtype.rs1 = instruction_bits & ((1U<<5)-1);
+    instruction_bits>>=5;
+    
+    instruction.sbtype.rs2 =instruction_bits & ((1U<<5)-1);
+    instruction_bits >>=5;
+    
+    instruction.sbtype.imm7 = instruction_bits & ((1U<<7)-1);
+    instruction_bits>>=7;
+    break;
   /* YOUR CODE HERE */
 
   #ifndef TESTING
@@ -56,14 +126,30 @@ Instruction parse_instruction(uint32_t instruction_bits) {
  * interpreted an n-bit integer. */
 int sign_extend_number(unsigned int field, unsigned int n) {
   /* YOUR CODE HERE */
-  return 0;
+  if (field >> (n-1) & 1){
+    // if negative, set upper bit to 1
+    return field | (~0U<<n); 
+  }
+  else{
+    //if positive, keep upper bit as 0
+    return field & ((1U<<n)-1);
+  }
 }
 
 /* Return the number of bytes (from the current PC) to the branch label using
  * the given branch instruction */
 int get_branch_offset(Instruction instruction) {
   /* YOUR CODE HERE */
-  return 0;
+  //finding imm from imm7 and imm5 from the branch type instruction (sbtype)
+  unsigned int imm12 = (instruction.sbtype.imm7>>6) & 0x1; //imm12 is highest bit of imm7
+  unsigned int imm11 = instruction.sbtype.imm5 & 0x1; //imm11 is highest bit of imm5
+  unsigned int imm10_5 = instruction.sbtype.imm7 & 0x3f; //imm10_5 is 6 lowest bits of imm7
+  unsigned int imm4_1 = (instruction.sbtype.imm5>>6) & 0xF; //imm4_1 is 4 lowest bits of imm5
+
+  unsigned int imm = (imm12<<11) & (imm11<<10) & (imm10_5<<4) & imm4_1; // concatonate
+
+  int  bytes = sign_extend_number (imm<<1, 12);
+  return bytes;
 }
 
 /* Returns the number of bytes (from the current PC) to the jump label using the
