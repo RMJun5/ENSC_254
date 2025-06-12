@@ -1,5 +1,5 @@
 #include <stdio.h>                       // Standard I/O library for printf
-#include <stdlib.h>                      // Standard library (not used directly here)
+#include <stdlib.h>                      // Standard library 
 #include "types.h"                       // Contains definition of Instruction and other types
 #include "utils.h"                       // Contains helper functions like sign_extend_number, etc.
 
@@ -138,32 +138,40 @@ void write_itype_except_load(Instruction instruction) {
     uint8_t funct3 = instruction.itype.funct3;                   // Extract funct3
     int imm = sign_extend_number(instruction.itype.imm, 12);     // Sign-extend the 12-bit immediate
 
+
+    // Determine the exact instruction based on funct3 and funct7
     switch (funct3) {
         case 0x0:
-            print_itype_except_load("addi", instruction, imm);
+            print_itype_except_load("addi", instruction, imm);  
             break;
         case 0x2:
-            print_itype_except_load("slti", instruction, imm);
+            print_itype_except_load("slti", instruction, imm); // set less than immediate
             break;
         case 0x3:
-            print_itype_except_load("sltiu", instruction, imm);
+            print_itype_except_load("sltiu", instruction, imm);  // set less than immediate unsigned
             break;
         case 0x4:
-            print_itype_except_load("xori", instruction, imm);
+            print_itype_except_load("xori", instruction, imm); 
             break;
         case 0x6:
-            print_itype_except_load("ori", instruction, imm);
+            print_itype_except_load("ori", instruction, imm); 
             break;
         case 0x7:
-            print_itype_except_load("andi", instruction, imm);
+            print_itype_except_load("andi", instruction, imm); 
             break;
         case 0x1: {
-            int shamt = instruction.itype.imm & 0x1F;  // Get shift amount
-            print_itype_except_load("slli", instruction, shamt);
+            // For shift operations, only the lower 5 bits are used for the shift amount
+            if ((instruction.itype.imm & ~0x1F) == 0) {
+                int shamt = instruction.itype.imm & 0x1F; // get shift amount
+                print_itype_except_load("slli", instruction, shamt); //logical shift left
+            } else {
+                handle_invalid_instruction(instruction);
+            }
             break;
         }
         case 0x5: {
             int shamt = instruction.itype.imm & 0x1F;
+            // Bit 10 of immediate distinguishes srai (arithmetic) from srli (logical)
             if ((instruction.itype.imm >> 10) & 0x1)
                 print_itype_except_load("srai", instruction, shamt);  // Arithmetic shift right
             else
@@ -178,24 +186,25 @@ void write_itype_except_load(Instruction instruction) {
 
 // Handles I-type load instructions
 void write_load(Instruction instruction) {
+    // Use funct3 to decide which load variant
     switch (instruction.itype.funct3) {
         case 0x0:
-            print_load("lb", instruction);
+            print_load("lb", instruction); // load byte
             break;
         case 0x1:
-            print_load("lh", instruction);
+            print_load("lh", instruction);  
             break;
         case 0x2:
-            print_load("lw", instruction);
+            print_load("lw", instruction); // load word
             break;
         case 0x4:
-            print_load("lbu", instruction);
+            print_load("lbu", instruction); // load byte unsigned
             break;
         case 0x5:
-            print_load("lhu", instruction);
+            print_load("lhu", instruction); // load halfword unsigned
             break;
         default:
-            handle_invalid_instruction(instruction);
+            handle_invalid_instruction(instruction); // invalid
             break;
     }
 }
@@ -204,16 +213,16 @@ void write_load(Instruction instruction) {
 void write_store(Instruction instruction) {
     switch (instruction.stype.funct3) {
         case 0x0:
-            print_store("sb", instruction);
+            print_store("sb", instruction); //store byte
             break;
         case 0x1:
-            print_store("sh", instruction);
+            print_store("sh", instruction); //store halfword
             break;
         case 0x2:
-            print_store("sw", instruction);
+            print_store("sw", instruction); //store word
             break;
         default:
-            handle_invalid_instruction(instruction);
+            handle_invalid_instruction(instruction); 
             break;
     }
 }
@@ -222,19 +231,19 @@ void write_store(Instruction instruction) {
 void write_branch(Instruction instruction) {
     switch (instruction.sbtype.funct3) {
         case 0x0:
-            print_branch("beq", instruction);
+            print_branch("beq", instruction); // branch if equal
             break;
         case 0x1:
-            print_branch("bne", instruction);
+            print_branch("bne", instruction); // branch if not equal
             break;
         case 0x4:
-            print_branch("blt", instruction);
+            print_branch("blt", instruction); //branch if less than 
             break;
         case 0x5:
-            print_branch("bge", instruction);
+            print_branch("bge", instruction); // branch if greater/equal
             break;
         case 0x6:
-            print_branch("bltu", instruction);
+            print_branch("bltu", instruction); //unsigned versions of 2 above
             break;
         case 0x7:
             print_branch("bgeu", instruction);
@@ -255,39 +264,40 @@ void print_rtype(const char *name, Instruction instruction) {
 // Print function for I-type (non-load) instructions
 void print_itype_except_load(const char *name, Instruction instruction, int imm) {
     printf(ITYPE_FORMAT, name, instruction.itype.rd, instruction.itype.rs1, imm);
-}
+}  // Ex. "addi x1, x2, 10"
 
 // Print function for load instructions
 void print_load(const char *name, Instruction instruction) {
     int imm = sign_extend_number(instruction.itype.imm, 12);  // Sign-extend the immediate
     printf(MEM_FORMAT, name, instruction.itype.rd, imm, instruction.itype.rs1);
 } // Computed with helper functions to account for how immediate values are laid out in the instruction bits 
+//Ex. "lw x1 8(x2)"
 
 // Print function for store instructions
 void print_store(const char *name, Instruction instruction) {
     int imm = get_store_offset(instruction);  // Calculate the full offset
     printf(MEM_FORMAT, name, instruction.stype.rs2, imm, instruction.stype.rs1);
-}
+} //Ex."sw x3, 8(x2)"
 
 // Print function for branch instructions
 void print_branch(const char *name, Instruction instruction) {
     int offset = get_branch_offset(instruction);  // Calculate offset for jump
     printf(BRANCH_FORMAT, name, instruction.sbtype.rs1, instruction.sbtype.rs2, offset);
-}
+}//Ex."beq x1, x2, 16"
 
 // Print function for LUI instruction
 void print_lui(Instruction instruction) {
     unsigned int imm = instruction.utype.imm;  // No shift needed
     printf(LUI_FORMAT, instruction.utype.rd, imm);
-}
+} //Ex. "lui x1, 0x12345"
 
 // Print function for JAL instruction
 void print_jal(Instruction instruction) {
     int offset = get_jump_offset(instruction);  // Compute jump offset
     printf(JAL_FORMAT, instruction.ujtype.rd, offset);
-}
+}// Ex."jal x1, 1024"
 
 // Print function for ECALL
 void print_ecall(void) {
     printf(ECALL_FORMAT);
-}
+} 
