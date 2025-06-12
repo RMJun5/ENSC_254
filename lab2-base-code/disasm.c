@@ -104,7 +104,7 @@ void write_rtype(Instruction instruction) {
             else if (funct7 == 0x01)
                 print_rtype("divu", instruction);
             else if (funct7 == 0x20)
-                print_rtype("sra", instruction);
+                print_rtype("sra", instruction); // shift right arithematic
             else
                 handle_invalid_instruction(instruction);
             break;
@@ -113,7 +113,7 @@ void write_rtype(Instruction instruction) {
             if (funct7 == 0x00)
                 print_rtype("or", instruction);
             else if (funct7 == 0x01)
-                print_rtype("rem", instruction);
+                print_rtype("rem", instruction); //remainder
             else
                 handle_invalid_instruction(instruction);
             break;
@@ -192,7 +192,7 @@ void write_load(Instruction instruction) {
             print_load("lb", instruction); // load byte
             break;
         case 0x1:
-            print_load("lh", instruction);  
+            print_load("lh", instruction);  //load halfword
             break;
         case 0x2:
             print_load("lw", instruction); // load word
@@ -246,7 +246,7 @@ void write_branch(Instruction instruction) {
             print_branch("bltu", instruction); //unsigned versions of 2 above
             break;
         case 0x7:
-            print_branch("bgeu", instruction);
+            print_branch("bgeu", instruction); 
             break;
         default:
             handle_invalid_instruction(instruction);
@@ -299,5 +299,5 @@ void print_jal(Instruction instruction) {
 
 // Print function for ECALL
 void print_ecall(void) {
-    printf(ECALL_FORMAT);
+    printf(ECALL_FORMAT); //system calls to request a service
 } 
