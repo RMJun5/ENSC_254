@@ -77,58 +77,6 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             break;
         /* YOUR CODE HERE */
 	/* deal with other cases */
-        case 0x1:
-            switch (instruction.rtype.funct7) {
-                case 0x0:
-                    // SLL
-                    processor->R[instruction.rtype.rd] =
-                        ((sWord)processor->R[instruction.rtype.rs1]) <<
-                        ((sWord)processor->R[instruction.rtype.rs2] & 0x1F);
-                    break;
-                case 0x1:
-                    // MULH
-                    processor->R[instruction.rtype.rd] =
-                        ((sWord)processor->R[instruction.rtype.rs1]) *
-                        ((sWord)processor->R[instruction.rtype.rs2]) >> 32;
-                    break;
-                default:
-                    handle_invalid_instruction(instruction);
-                    exit(-1);
-                    break;
-            }
-            break;
-        case 0x2:
-            // SLT
-            processor->R[instruction.rtype.rd] =
-                ((sWord)processor->R[instruction.rtype.rs1]) <
-                ((sWord)processor->R[instruction.rtype.rs2]) ? 1 : 0;
-            break;
-        case 0x3:
-            // SLTU
-            processor->R[instruction.rtype.rd] =
-                processor->R[instruction.rtype.rs1] <
-                processor->R[instruction.rtype.rs2] ? 1 : 0;
-            break;
-        case 0x4:
-            // XOR
-            processor->R[instruction.rtype.rd] =
-                processor->R[instruction.rtype.rs1] ^
-                processor->R[instruction.rtype.rs2];
-            break;
-        case 0x5:
-            switch (instruction.rtype.funct7) {
-                case 0x0:
-                    // SRL
-                    processor->R[instruction.rtype.rd] =
-                        ((sWord)processor->R[instruction.rtype.rs1]) >>
-                        ((sWord)processor->R[instruction.rtype.rs2] & 0x1F);
-                    break;
-                case 0x20:
-                    // SRA
-                    processor->R[instruction.rtype.rd] =
-                        ((sWord)processor->R[instruction.rtype.rs1]) >>
-                        ((sWord)processor->R[instruction.rtype.rs2] & 0x1F);
-                    break; 
         default:
             handle_invalid_instruction(instruction);
             exit(-1);
