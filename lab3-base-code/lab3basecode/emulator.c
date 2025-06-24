@@ -91,6 +91,10 @@ void execute_rtype(Instruction instruction, Processor *processor) {
         processor -> R[instruction.rtype.rd]=
             ((sWord)processor->R[instruction.rtype.rs1])/
             ((sWord)processor->R[instruction.rtype.rs2]);
+        default:
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
         }
     case 0x6:
         switch(instruction.rtype.rd){
@@ -106,6 +110,10 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             ((sWord)processor->R[instruction.rtype.rs1]) %
             ((sWord)processor->R[instruction.rtype.rs2]);
         break;
+        default:
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
         }
     case 0x7:
         switch(instruction.rtype.funct7){
@@ -121,13 +129,30 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             ((Word)processor->R[instruction.rtype.rs1]) %
             ((Word)processor->R[instruction.rtype.rs2]);
         break;
+        default:
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
         }
     case 0x1:
-    //Shift left logical 
+        switch(instruction.rtype.funct7){ 
+        case 0x00:
+        //Shift left logical 
         processor-> R[instruction.rtype.rd]=
             ((sWord)processor->R[instruction.rtype.rs1])<<
             ((sWord)processor->R[instruction.rtype.rs2]);
         break;
+        case 0x01:
+        // MUL High
+        processor-> R[instruction.rtype.rd]=
+            ((sDouble)processor->R[instruction.rtype.rs1])*
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+        default:
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
+        }
     case 0x5:
     //Shift right 
         switch (instruction.rtype.funct7){
@@ -151,11 +176,13 @@ void execute_rtype(Instruction instruction, Processor *processor) {
     case 0x2:
      switch(instruction.rtype.funct7){
         case 0x00:
+        //Set Less Than
         processor -> R [instruction.rtype.rd]=
             ((sWord)processor->R[instruction.rtype.rs1]) < 
             ((sWord)processor->R[instruction.rtype.rs2])?1:0;
         break;
         case 0x01:
+        //MUL High (S) (U)
         processor -> R [instruction.rtype.rd]=
             ((sDouble)processor->R[instruction.rtype.rs1]) *
             ((Double)processor->R[instruction.rtype.rs2]);
@@ -165,7 +192,26 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             handle_invalid_instruction(instruction);
             exit(-1);
             break;
+    case 0x3:
+     switch(instruction.rtype.funct7){
+        case 0x00:
+        //Set less than (U)
+        processor-> R[instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])<
+            ((sWord)processor->R[instruction.rtype.rs2])? 1:0;
+        case 0x01:
+        //MUL High (U)
+        processor-> R[instruction.rtype.rd]=
+            ((Double)processor->R[instruction.rtype.rs1])*
+            ((Double)processor->R[instruction.rtype.rs2]);
+        break;
+        default:
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
+     }
     }
+
     // update PC
     processor->PC += 4;
 }
