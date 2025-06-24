@@ -77,7 +77,91 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             break;
         /* YOUR CODE HERE */
 	/* deal with other cases */
-        default:
+    case 0x4:
+        switch(instruction.rtype.funct7){
+
+        case 0x0:
+        // XOR
+        processor -> R [instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])^
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+        case 0x01:
+        //DIV 
+        processor -> R[instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])/
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        }
+    case 0x6:
+        switch(instruction.rtype.rd){
+        case 0x00:       
+        //OR 
+        processor -> R [instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1]) | 
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+        case 0x01:
+        //rem
+        processor -> R [instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1]) %
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+        }
+    case 0x7:
+        switch(instruction.rtype.funct7){
+        case 0x00:
+        //AND 
+        processor-> R[instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])&
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+        case 0x01:
+        //Remainder(U)
+        processor -> R [instruction.rtype.rd]=
+            ((Word)processor->R[instruction.rtype.rs1]) %
+            ((Word)processor->R[instruction.rtype.rs2]);
+        break;
+        }
+    case 0x1:
+    //Shift left logical 
+        processor-> R[instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])<<
+            ((sWord)processor->R[instruction.rtype.rs2]);
+        break;
+    case 0x5:
+    //Shift right 
+        switch (instruction.rtype.funct7){
+            case 0x0:
+            //logical
+            processor->R[instruction.rtype.rd]=
+            ((Word)processor->R[instruction.rtype.rs1])>>
+            ((Word)processor->R[instruction.rtype.rs2]);
+            break;
+            case 0x20:
+            //arithematic
+            processor->R[instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1])>>
+            ((sWord)processor->R[instruction.rtype.rs2]);
+            break;
+            default: 
+            handle_invalid_instruction(instruction);
+            exit(-1);
+            break;
+        }
+    case 0x2:
+     switch(instruction.rtype.funct7){
+        case 0x00:
+        processor -> R [instruction.rtype.rd]=
+            ((sWord)processor->R[instruction.rtype.rs1]) < 
+            ((sWord)processor->R[instruction.rtype.rs2])?1:0;
+        break;
+        case 0x01:
+        processor -> R [instruction.rtype.rd]=
+            ((sDouble)processor->R[instruction.rtype.rs1]) *
+            ((Double)processor->R[instruction.rtype.rs2]);
+        break;
+     }
+            default:
             handle_invalid_instruction(instruction);
             exit(-1);
             break;
