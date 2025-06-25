@@ -305,7 +305,7 @@ void execute_branch(Instruction instruction, Processor *processor) {
         case 0x0:
         //branch ==
         if(((sWord)processor->R[instruction.sbtype.rs1])==((sWord)processor->R[instruction.sbtype.rs2])) 
-            processor->PC+=instruction.sbtype.imm7;
+            processor -> PC+=instruction.sbtype.imm7;
         else 
             processor->PC+=4;
         break;
@@ -342,7 +342,7 @@ void execute_branch(Instruction instruction, Processor *processor) {
         if(((Word)processor->R[instruction.sbtype.rs1])>=((Word)processor->R[instruction.sbtype.rs2]))
             processor -> PC += instruction.sbtype.imm7;
         else 
-            processor->PC+=4;
+            processor-> PC+=4;
         break;
         default:
             handle_invalid_instruction(instruction);
@@ -354,6 +354,31 @@ void execute_branch(Instruction instruction, Processor *processor) {
 void execute_load(Instruction instruction, Processor *processor, Byte *memory) {
     switch (instruction.itype.funct3) {
         /* YOUR CODE HERE */
+        case 0x0:
+        //Load Byte
+        processor->R[instruction.itype.rd] =
+             (sByte)load(memory, instruction.itype.rs1, LENGTH_BYTE);
+        break;
+        case 0x1:
+        //Load Half
+        processor->R[instruction.itype.rd]=
+            (sHalf)load(memory,instruction.itype.rs1, LENGTH_HALF_WORD);
+        break;
+        case 0x2:
+        //Load Word
+        processor ->R[instruction.itype.rd]=
+            (sWord)load(memory,instruction.itype.rs1, LENGTH_WORD);
+        break;
+        case 0x4:
+        //Load Byte(U)
+        processor -> R[instruction.itype.rd]=
+            (Byte)load(memory, instruction.itype.rs1, LENGTH_BYTE);
+        break;
+        case 0x5:
+        //Load Half(U)
+        processor->R[instruction.itype.rd]=
+            (Half)load(memory,instruction.itype.rs1, LENGTH_HALF_WORD);
+        break;
         default:
             handle_invalid_instruction(instruction);
             break;
@@ -363,6 +388,19 @@ void execute_load(Instruction instruction, Processor *processor, Byte *memory) {
 void execute_store(Instruction instruction, Processor *processor, Byte *memory) {
     switch (instruction.stype.funct3) {
         /* YOUR CODE HERE */
+        case 0x0:
+        //Store Byte
+        store(memory,instruction.stype.rs1,LENGTH_BYTE,((sByte)processor->R[instruction.stype.rs2]));
+        break;
+        case 0x1:
+        //Store Half
+        store(memory,instruction.stype.rs1,LENGTH_HALF_WORD,((sHalf)processor->R[instruction.stype.rs2]));
+        break;
+        case 0x2:
+        //Store Word
+        store(memory,instruction.stype.rs1,LENGTH_WORD,((sByte)processor->R[instruction.stype.rs2]));
+        break;
+
         default:
             handle_invalid_instruction(instruction);
             exit(-1);
@@ -372,14 +410,31 @@ void execute_store(Instruction instruction, Processor *processor, Byte *memory) 
 
 void execute_jal(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
+    processor->R[instruction.ujtype.rd]= processor->PC +4;
+    processor->PC= processor->PC +((sWord)(instruction.ujtype.imm));
 }
-
  void execute_lui(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
+    processor->R[instruction.utype.rd]= processor->R[instruction.utype.imm]<<12;
+    processor->R[instruction.utype.rd]= processor->PC + (processor->R[instruction.utype.imm]<<12);
 }
 
 void store(Byte *memory, Address address, Alignment alignment, Word value) {
     /* YOUR CODE HERE */
+   if (alignment == LENGTH_BYTE) {
+        memory[address] = value & 0xFF; 
+    } else if (alignment == LENGTH_HALF_WORD) {
+        memory[address] = value & 0xFF;
+        memory[address + 1] = (value >> 8) & 0xFF;
+    } else if (alignment == LENGTH_WORD) {
+        memory[address] = value & 0xFF;
+        memory[address + 1] = (value >> 8) & 0xFF;
+        memory[address + 2] = (value >> 16) & 0xFF;
+        memory[address + 3] = (value >> 24) & 0xFF;
+    } else {
+        printf("Error: Unrecognized alignment %d\n", alignment);
+        exit(-1);
+    }
 }
 
 Word load(Byte *memory, Address address, Alignment alignment) {
