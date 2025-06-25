@@ -305,44 +305,44 @@ void execute_branch(Instruction instruction, Processor *processor) {
         case 0x0:
         //branch ==
         if(((sWord)processor->R[instruction.sbtype.rs1])==((sWord)processor->R[instruction.sbtype.rs2])) 
-            (sWord)processor->PC+=instruction.sbtype.imm7;
+            processor->PC+=instruction.sbtype.imm7;
         else 
-            (sWord)processor->PC+=4;
+            processor->PC+=4;
         break;
         case 0x1:
         //branch !=
         if (((sWord)processor->R[instruction.sbtype.rs1])!= ((sWord)processor->R[instruction.sbtype.rs2]))
-            (sWord)processor  -> PC += instruction.sbtype.imm7;
+            processor  -> PC += instruction.sbtype.imm7;
         else
-            (sWord)processor->PC+=4;
+            processor->PC+=4;
         break;
         case 0x4:
         //branch <
         if (((sWord)processor->R[instruction.sbtype.rs1])<((sWord)processor->R[instruction.sbtype.rs2]))
-            (sWord)processor -> PC += instruction.sbtype.imm7;
+            processor -> PC += instruction.sbtype.imm7;
         else 
-            (sWord)processor-> PC+=4;
+            processor-> PC+=4;
         break;
         case 0x5:
         //branch >=
         if (((sWord)processor->R[instruction.sbtype.rs1])>=((sWord)processor->R[instruction.sbtype.rs2]))
-            (sWord)processor -> PC += instruction.sbtype.imm7;
+            processor -> PC += instruction.sbtype.imm7;
         else
-            (sWord)processor -> PC+=4;
+            processor -> PC+=4;
         break;
         //branch <(U)
         case 0x6:
         if (((Word)processor->R[instruction.sbtype.rs1])<((Word)processor->R[instruction.sbtype.rs2]))
-            (Word)processor -> PC += instruction.sbtype.imm7;
+            processor -> PC += instruction.sbtype.imm7;
         else
-            (Word)processor -> PC+=4;
+            processor -> PC+=4;
         break;
         case 0x7:
         // branch >=(U)
         if(((Word)processor->R[instruction.sbtype.rs1])>=((Word)processor->R[instruction.sbtype.rs2]))
-            (Word)processor -> PC += instruction.sbtype.imm7;
+            processor -> PC += instruction.sbtype.imm7;
         else 
-            (Word)processor->PC+=4;
+            processor->PC+=4;
         break;
         default:
             handle_invalid_instruction(instruction);
@@ -374,7 +374,7 @@ void execute_jal(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
 }
 
-void execute_lui(Instruction instruction, Processor *processor) {
+ void execute_lui(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
 }
 
