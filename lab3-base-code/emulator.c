@@ -123,8 +123,8 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             switch (instruction.rtype.funct7) {
                 case 0x00: // XOR
                     processor->R[instruction.rtype.rd] =
-                        processor->R[instruction.rtype.rs1] ^
-                        processor->R[instruction.rtype.rs2];
+                        (Word)processor->R[instruction.rtype.rs1]^
+                        (Word)processor->R[instruction.rtype.rs2];
                     break;
                 case 0x01: // DIV
                     processor->R[instruction.rtype.rd] =
@@ -207,30 +207,31 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) {
             //ADD Immediate 
             processor-> R[instruction.itype.rd]=
             ((sWord)processor->R[instruction.itype.rs1])+
-            (sWord)sign_extend_number(instruction.itype.imm,12);
+            ((sWord)sign_extend_number(instruction.itype.imm,5));
+        break;
         case 0x1: 
         // Shift Left Logical Imm
         processor-> R[instruction.itype.rd]=
-            ((sWord)processor->R[instruction.itype.rs1])<<
+            ((sWord)processor->R[instruction.itype.rs1])+
             ((sWord)instruction.itype.imm);
         break;
         case 0x2:
-        //set let than imm
+        //set less than imm
         processor-> R[instruction.itype.rd]=
             ((sWord)processor->R[instruction.itype.rs1])<
-            (sWord)sign_extend_number(instruction.itype.imm,12)?1:0;
+            ((sWord)sign_extend_number(instruction.itype.imm,12))?1:0;
         break;
         case 0x3:
         //set less than im (u)
         processor-> R[instruction.itype.rd]=
             ((Word)processor->R[instruction.itype.rs1])<
-            (Word)sign_extend_number(instruction.itype.imm,12)?1:0;
+            ((Word)sign_extend_number(instruction.itype.imm,12))?1:0;
         break;
         case 0x4:
         //XOR Immediate
-            processor-> R[instruction.itype.rd]=
-            ((sWord)processor->R[instruction.itype.rs1])^
-            (sWord)sign_extend_number(instruction.itype.imm,12);
+            processor->R[instruction.itype.rd]=
+            ((Word)processor->R[instruction.itype.rs1])^
+            ((Word)sign_extend_number(instruction.itype.imm,12));
         break;
          case 0x5:
         //Shift Right Logical imm and Arithematic imm 
@@ -238,17 +239,17 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) {
             case 0x00:
             //Logical 
             processor-> R[instruction.itype.rd]=
-            ((sWord)processor->R[instruction.itype.rs1])>>
-            ((sWord)(instruction.itype.imm));
+            ((Word)processor->R[instruction.itype.rs1])>>
+            ((Word)instruction.itype.imm);
             break;
             case 0x20:
             //Arithematic
             processor-> R[instruction.itype.rd]=
-            ((sWord)processor->R[instruction.itype.rs1])>>
-            ((sWord)(instruction.itype.imm));
+            ((Word)processor->R[instruction.itype.rs1])>>
+            ((Word)instruction.itype.imm);
             break;
-        break;
         }
+        break;
         case 0x6:
         //OR Immediate
         processor-> R[instruction.itype.rd]=
@@ -259,7 +260,7 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) {
         //AND Immediate
         processor-> R[instruction.itype.rd]=
             ((sWord)processor->R[instruction.itype.rs1])&
-            (sWord)sign_extend_number(instruction.itype.imm,12);
+            ((sWord)sign_extend_number (instruction.itype.imm,12));
         break;
 
         
