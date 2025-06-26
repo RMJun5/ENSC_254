@@ -1,9 +1,10 @@
-#include <stdio.h> // for stderr
+#include <stdio.h> // for stderr and printf
 #include <stdlib.h> // for exit()
-#include "types.h"
-#include "utils.h"
-#include "riscv.h"
+#include "types.h" // includes definitions for Instruction, Processor, etc.
+#include "utils.h" // includes helper functions like sign_extend_number, etc.
+#include "riscv.h" // includes declarations for riscv-specific functions
 
+// Function declarations for instruction execution
 void execute_rtype(Instruction, Processor *);
 void execute_itype_except_load(Instruction, Processor *);
 void execute_branch(Instruction, Processor *);
@@ -13,32 +14,33 @@ void execute_store(Instruction, Processor *, Byte *);
 void execute_ecall(Processor *, Byte *);
 void execute_lui(Instruction, Processor *);
 
+// Executes a decoded instruction
 void execute_instruction(uint32_t instruction_bits, Processor *processor, Byte *memory) {    
-    Instruction instruction = parse_instruction(instruction_bits);
+    Instruction instruction = parse_instruction(instruction_bits); // Parse raw bits to structured Instruction
     switch(instruction.opcode) {
         case 0x33:
-            execute_rtype(instruction, processor);
+            execute_rtype(instruction, processor); // R-type
             break;
         case 0x13:
-            execute_itype_except_load(instruction, processor);
+            execute_itype_except_load(instruction, processor); // I-type (arithmetic/logical)
             break;
         case 0x73:
-            execute_ecall(processor, memory);
+            execute_ecall(processor, memory); // ECALL
             break;
         case 0x63:
-            execute_branch(instruction, processor);
+            execute_branch(instruction, processor); // Branch
             break;
         case 0x6F:
-            execute_jal(instruction, processor);
+            execute_jal(instruction, processor); // JAL
             break;
         case 0x23:
-            execute_store(instruction, processor, memory);
+            execute_store(instruction, processor, memory); // Store
             break;
         case 0x03:
-            execute_load(instruction, processor, memory);
+            execute_load(instruction, processor, memory); // Load
             break;
         case 0x37:
-            execute_lui(instruction, processor);
+            execute_lui(instruction, processor); // LUI
             break;
         default: // undefined opcode
             handle_invalid_instruction(instruction);
@@ -49,29 +51,32 @@ void execute_instruction(uint32_t instruction_bits, Processor *processor, Byte *
     processor->R[0] = 0;
 }
 
+// Executes R-type instructions based on funct3 and funct7 fields
 void execute_rtype(Instruction instruction, Processor *processor) {
+    // Switch based on funct3 to narrow down the type of R-type instruction
     switch (instruction.rtype.funct3){
-        case 0x0:
+        case 0x0:  // funct3 == 000: add, sub, mul
             switch (instruction.rtype.funct7) {
                 case 0x0:
-                    // Add
+                    // Add: Signed addition of rs1 and rs2 → store result in rd
                     processor->R[instruction.rtype.rd] =
                         ((sWord)processor->R[instruction.rtype.rs1]) +
                         ((sWord)processor->R[instruction.rtype.rs2]);
                     break;
                 case 0x1:
-                    // Mul
+                    // Mul: Signed multiplication of rs1 and rs2 → store result in rd
                     processor->R[instruction.rtype.rd] =
                         ((sWord)processor->R[instruction.rtype.rs1]) *
                         ((sWord)processor->R[instruction.rtype.rs2]);
                     break;
                 case 0x20:
-                    // Sub
+                    // Sub: Signed subtraction rs1 - rs2 → store result in rd
                     processor->R[instruction.rtype.rd] =
                         ((sWord)processor->R[instruction.rtype.rs1]) -
                         ((sWord)processor->R[instruction.rtype.rs2]);
                     break;
                 default:
+                    // Invalid funct7 value for funct3 == 0
                     handle_invalid_instruction(instruction);
                     exit(-1);
                     break;
@@ -79,12 +84,12 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             break;
         case 0x1: // SLL, MULH
             switch (instruction.rtype.funct7) {
-                case 0x00: // SLL
+                case 0x00: // SLL (logical shift left)
                     processor->R[instruction.rtype.rd] =
                         processor->R[instruction.rtype.rs1] <<
                         (processor->R[instruction.rtype.rs2] & 0x1F);
                     break;
-                case 0x01: // MULH
+                case 0x01: // MULH (high 32 bits of signed multiplication)
                     processor->R[instruction.rtype.rd] =
                         ((int64_t)((sWord)processor->R[instruction.rtype.rs1]) *
                          (int64_t)((sWord)processor->R[instruction.rtype.rs2])) >> 32;
@@ -94,7 +99,7 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                     exit(-1);
             }
             break;
-        case 0x2: // SLT
+        case 0x2: // SLT (set if less than for signed - for values that may be negative)
             switch (instruction.rtype.funct7) {
                 case 0x00:
                     processor->R[instruction.rtype.rd] =
@@ -106,7 +111,7 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                     exit(-1);
             }
             break;
-        case 0x3: // SLTU
+        case 0x3: // SLTU (set if less than for unsigned - for raw bit values, memory addresses, etc.)
             switch (instruction.rtype.funct7) {
                 case 0x00:
                     processor->R[instruction.rtype.rd] =
@@ -137,17 +142,17 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             break;
         case 0x5: // SRL, SRA
             switch (instruction.rtype.funct7) {
-                case 0x00: // SRL
+                case 0x00: // SRL (logical shift right)
                     processor->R[instruction.rtype.rd] =
                         processor->R[instruction.rtype.rs1] >>
                         (processor->R[instruction.rtype.rs2] & 0x1F);
                     break;
-                case 0x20: // SRA
+                case 0x20: // SRA (arithmetic right shift sign-extended)
                     processor->R[instruction.rtype.rd] =
                         ((sWord)processor->R[instruction.rtype.rs1]) >>
                         (processor->R[instruction.rtype.rs2] & 0x1F);
                     break;
-                case 0x01: // DIVU
+                case 0x01: // DIVU (unsigned integer division)
                     processor->R[instruction.rtype.rd] =
                         processor->R[instruction.rtype.rs1] /
                         processor->R[instruction.rtype.rs2];
@@ -164,7 +169,7 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                         processor->R[instruction.rtype.rs1] |
                         processor->R[instruction.rtype.rs2];
                     break;
-                case 0x01: // REM
+                case 0x01: // REM  (signed remainder - modulus)
                     processor->R[instruction.rtype.rd] =
                         (sWord)processor->R[instruction.rtype.rs1] %
                         (sWord)processor->R[instruction.rtype.rs2];
