@@ -13,7 +13,7 @@ void execute_store(Instruction, Processor *, Byte *);
 void execute_ecall(Processor *, Byte *);
 void execute_lui(Instruction, Processor *);
 
-void execute_instruction(uint32_t instruction_bits, Processor *processor,Byte *memory) {    
+void execute_instruction(uint32_t instruction_bits, Processor *processor, Byte *memory) {    
     Instruction instruction = parse_instruction(instruction_bits);
     switch(instruction.opcode) {
         case 0x33:
@@ -45,6 +45,8 @@ void execute_instruction(uint32_t instruction_bits, Processor *processor,Byte *m
             exit(-1);
             break;
     }
+    // Ensure x0 is always zero
+    processor->R[0] = 0;
 }
 
 void execute_rtype(Instruction instruction, Processor *processor) {
@@ -75,9 +77,7 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                     break;
             }
             break;
-        /* YOUR CODE HERE */
-	/* deal with other cases */
-     case 0x1: // SLL, MULH
+        case 0x1: // SLL, MULH
             switch (instruction.rtype.funct7) {
                 case 0x00: // SLL
                     processor->R[instruction.rtype.rd] =
@@ -86,7 +86,6 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                     break;
                 case 0x01: // MULH
                     processor->R[instruction.rtype.rd] =
-                        // Implement MULH (high part of signed multiplication)
                         ((int64_t)((sWord)processor->R[instruction.rtype.rs1]) *
                          (int64_t)((sWord)processor->R[instruction.rtype.rs2])) >> 32;
                     break;
@@ -197,11 +196,11 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             exit(-1);
     }
     processor->PC += 4;
+    processor->R[0] = 0;
 }
 
 void execute_itype_except_load(Instruction instruction, Processor *processor) { //opcode 0x13
     switch (instruction.itype.funct3) {
-        /* YOUR CODE HERE */
         case 0x0:
         //addi
             processor->R[instruction.itype.rd] = 
@@ -260,15 +259,12 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) { 
             exit(-1);
             break;
     }
-    //update PC
     processor->PC += 4;
+    processor->R[0] = 0;
 }
 
 void execute_ecall(Processor *p, Byte *memory) {
     Register i;
-    
-    // syscall number is given by a0 (x10)
-    // argument is given by a1
     switch(p->R[10]) {
         case 1: // print an integer
             printf("%d",p->R[11]);
@@ -293,111 +289,105 @@ void execute_ecall(Processor *p, Byte *memory) {
             exit(-1);
             break;
     }
+    p->R[0] = 0;
 }
 
 void execute_branch(Instruction instruction, Processor *processor) {
+    int taken = 0;
     switch (instruction.sbtype.funct3) {
-        /* YOUR CODE HERE */
-        case 0x0:
-        //branch == beq
-       if ((sWord)processor->R[instruction.sbtype.rs1] == (sWord)processor->R[instruction.sbtype.rs2]) 
+        case 0x0: // beq
+            if ((sWord)processor->R[instruction.sbtype.rs1] == (sWord)processor->R[instruction.sbtype.rs2]) {
                 processor->PC += get_branch_offset(instruction);
-        break;
-        case 0x1:
-        //branch != bne
-        if (((sWord)processor->R[instruction.sbtype.rs1])!= ((sWord)processor->R[instruction.sbtype.rs2]))
-            processor -> PC += get_branch_offset(instruction);
-        break;
+                taken = 1;
+            }
+            break;
+        case 0x1: // bne
+            if ((sWord)processor->R[instruction.sbtype.rs1] != (sWord)processor->R[instruction.sbtype.rs2]) {
+                processor->PC += get_branch_offset(instruction);
+                taken = 1;
+            }
+            break;
         default:
             handle_invalid_instruction(instruction);
             exit(-1);
             break;
     }
-    processor->PC += 4; // Update PC after branch execution
+    if (!taken) processor->PC += 4;
+    processor->R[0] = 0;
 }
 
 void execute_load(Instruction instruction, Processor *processor, Byte *memory) {
+    Address addr = processor->R[instruction.itype.rs1] + sign_extend_number(instruction.itype.imm, 12);
     switch (instruction.itype.funct3) {
-        /* YOUR CODE HERE */
-        case 0x0:
-        //Load Byte
-        processor->R[instruction.itype.rd] =
-             (sByte)load(memory, instruction.itype.rs1, LENGTH_BYTE);
-        break;
-        case 0x1:
-        //Load Half
-        processor->R[instruction.itype.rd]=
-            (sHalf)load(memory,instruction.itype.rs1, LENGTH_HALF_WORD);
-        break;
-        case 0x2:
-        //Load Word
-        processor ->R[instruction.itype.rd]=
-            (sWord)load(memory,instruction.itype.rs1, LENGTH_WORD);
-        break;
-        case 0x4:
-        //Load Byte(U)
-        processor -> R[instruction.itype.rd]=
-            (Byte)load(memory, instruction.itype.rs1, LENGTH_BYTE);
-        break;
-        case 0x5:
-        //Load Half(U)
-        processor->R[instruction.itype.rd]=
-            (Half)load(memory,instruction.itype.rs1, LENGTH_HALF_WORD);
-        break;
+        case 0x0: // LB
+            processor->R[instruction.itype.rd] = (sByte)load(memory, addr, LENGTH_BYTE);
+            break;
+        case 0x1: // LH
+            processor->R[instruction.itype.rd] = (sHalf)load(memory, addr, LENGTH_HALF_WORD);
+            break;
+        case 0x2: // LW
+            processor->R[instruction.itype.rd] = (sWord)load(memory, addr, LENGTH_WORD);
+            break;
+        case 0x4: // LBU
+            processor->R[instruction.itype.rd] = (Byte)load(memory, addr, LENGTH_BYTE);
+            break;
+        case 0x5: // LHU
+            processor->R[instruction.itype.rd] = (Half)load(memory, addr, LENGTH_HALF_WORD);
+            break;
         default:
             handle_invalid_instruction(instruction);
             break;
     }
-    processor->PC+=4;
+    processor->PC += 4;
+    processor->R[0] = 0;
 }
 
 void execute_store(Instruction instruction, Processor *processor, Byte *memory) {
+    Address addr = processor->R[instruction.stype.rs1] + sign_extend_number(get_store_offset(instruction), 12);
     switch (instruction.stype.funct3) {
-        /* YOUR CODE HERE */
-        case 0x0:
-        //Store Byte
-        store(memory,instruction.stype.rs1,LENGTH_BYTE,((sByte)processor->R[instruction.stype.rs2]));
-        break;
-        case 0x1:
-        //Store Half
-        store(memory,instruction.stype.rs1,LENGTH_HALF_WORD,((sHalf)processor->R[instruction.stype.rs2]));
-        break;
-        case 0x2:
-        //Store Word
-        store(memory,instruction.stype.rs1,LENGTH_WORD,((sByte)processor->R[instruction.stype.rs2]));
-        break;
-
+        case 0x0: // SB
+            store(memory, addr, LENGTH_BYTE, processor->R[instruction.stype.rs2]);
+            break;
+        case 0x1: // SH
+            store(memory, addr, LENGTH_HALF_WORD, processor->R[instruction.stype.rs2]);
+            break;
+        case 0x2: // SW
+            store(memory, addr, LENGTH_WORD, processor->R[instruction.stype.rs2]);
+            break;
         default:
             handle_invalid_instruction(instruction);
             exit(-1);
             break;
     }
     processor->PC += 4;
+    processor->R[0] = 0;
 }
+
 void execute_jal(Instruction instruction, Processor *processor) {
-    /* YOUR CODE HERE */
     int offset = get_jump_offset(instruction);
     if (instruction.ujtype.rd > 31) {
         handle_invalid_instruction(instruction);
         exit(-1);
     } else {
-        processor->R[instruction.ujtype.rd]= processor->PC + 4;
+        processor->R[instruction.ujtype.rd] = processor->PC + 4;
     }
     processor->PC = processor->PC + offset;
+    processor->R[0] = 0;
 }
+
 void execute_lui(Instruction instruction, Processor *processor) {
-    /* YOUR CODE HERE */
-     if (instruction.utype.rd == 0) {
+    if (instruction.utype.rd == 0) {
         handle_invalid_instruction(instruction);
         exit(-1);
     } else {
         processor->R[instruction.utype.rd] = instruction.utype.imm << 12;
-        processor->PC += 4; // Update PC after LUI execution
+        processor->PC += 4;
     }
+    processor->R[0] = 0;
 }
+
 void store(Byte *memory, Address address, Alignment alignment, Word value) {
-    /* YOUR CODE HERE */
-   if (alignment == LENGTH_BYTE) {
+    if (alignment == LENGTH_BYTE) {
         memory[address] = value & 0xFF; 
     } else if (alignment == LENGTH_HALF_WORD) {
         memory[address] = value & 0xFF;
