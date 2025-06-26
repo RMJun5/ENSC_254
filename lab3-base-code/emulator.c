@@ -208,7 +208,7 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) { 
             (sWord)sign_extend_number(instruction.itype.imm, 12);
             break;
         case 0x1:
-        //slli
+         //slli
             switch (instruction.itype.imm >> 5){
                 case 0x0:
                     processor->R[instruction.itype.rd] =
@@ -252,7 +252,7 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) { 
             break;
         case 0x7:
         //andi
-            processor->R[instruction.itype.rd] = ((Word)processor->R[instruction.itype.rs1]) & (Word)sign_extend_number(instruction.itype.imm, 12);
+            processor->R[instruction.itype.rd] = (processor->R[instruction.itype.rs1]) & sign_extend_number(instruction.itype.imm, 12);
             break;
         default:
             handle_invalid_instruction(instruction);
@@ -360,7 +360,6 @@ void execute_store(Instruction instruction, Processor *processor, Byte *memory) 
             break;
     }
     processor->PC += 4;
-    processor->R[0] = 0;
 }
 
 void execute_jal(Instruction instruction, Processor *processor) {
