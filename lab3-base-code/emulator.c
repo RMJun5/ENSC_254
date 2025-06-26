@@ -372,19 +372,29 @@ void execute_store(Instruction instruction, Processor *processor, Byte *memory) 
             exit(-1);
             break;
     }
+    processor->PC += 4;
 }
 void execute_jal(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
     int offset = get_jump_offset(instruction);
-    processor->R[instruction.ujtype.rd] = processor->PC + 4; 
-    processor->PC += offset; 
+    if (instruction.ujtype.rd > 31) {
+        handle_invalid_instruction(instruction);
+        exit(-1);
+    } else {
+        processor->R[instruction.ujtype.rd]= processor->PC + 4;
+    }
+    processor->PC = processor->PC + offset;
 }
 void execute_lui(Instruction instruction, Processor *processor) {
     /* YOUR CODE HERE */
-    int offset=get_store_offset(instruction);
-    processor->R[instruction.utype.rd]= offset<<12;
+     if (instruction.utype.rd == 0) {
+        handle_invalid_instruction(instruction);
+        exit(-1);
+    } else {
+        processor->R[instruction.utype.rd] = instruction.utype.imm << 12;
+        processor->PC += 4; // Update PC after LUI execution
+    }
 }
-
 void store(Byte *memory, Address address, Alignment alignment, Word value) {
     /* YOUR CODE HERE */
    if (alignment == LENGTH_BYTE) {
