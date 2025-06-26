@@ -179,7 +179,7 @@ void execute_rtype(Instruction instruction, Processor *processor) {
                     exit(-1);
             }
             break;
-        case 0x7: // AND, REMU
+        case 0x7: // AND, REMU (remainder unsigned)
             switch (instruction.rtype.funct7) {
                 case 0x00: // AND
                     processor->R[instruction.rtype.rd] =
@@ -200,44 +200,49 @@ void execute_rtype(Instruction instruction, Processor *processor) {
             handle_invalid_instruction(instruction);
             exit(-1);
     }
-    processor->PC += 4;
-    processor->R[0] = 0;
+    processor->PC += 4; // increments the program counter (PC) by 4 bytes moves to the next instruction
+    processor->R[0] = 0; // Ensure x0 remains zero
 }
-
+// Handles I-type arithmetic and logical instructions that do not involve memory loading
 void execute_itype_except_load(Instruction instruction, Processor *processor) { //opcode 0x13
     switch (instruction.itype.funct3) {
         case 0x0:
-        //addi
+        //addi Add Immediate (signed addition of a register and a sign-extended immediate)
             processor->R[instruction.itype.rd] = 
             ((sWord)processor->R[instruction.itype.rs1]) + 
             (sWord)sign_extend_number(instruction.itype.imm, 12);
+            // Add rs1 to the sign-extended 12-bit immediate, store in rd
             break;
         case 0x1:
-         //slli
-            switch (instruction.itype.imm >> 5){
+         //slli Shift Left Logical Immediate
+            switch (instruction.itype.imm >> 5){ 
+                //Check that upper 7 bits of the immediate are valid (should be 0 for slli)
                 case 0x0:
                     processor->R[instruction.itype.rd] =
                     ((Word)processor->R[instruction.itype.rs1]) << 
                     ((Word)instruction.itype.imm & 0x1F);
+                    // Perform logical left shift of rs1 by lower 5 bits of imm, store in rd
                     break;
                 default:
-                    handle_invalid_instruction(instruction);
+                    handle_invalid_instruction(instruction); // Invalid case
                     exit(-1);
                     break;
             }
             break;
         case 0x2:
-        //slti
+        //slti Set Less Than Immediate (signed)
             processor->R[instruction.itype.rd] = 
             ((sWord)processor->R[instruction.itype.rs1]) < 
             ((sWord)sign_extend_number(instruction.itype.imm, 12)) ? 1 : 0;
+            // If rs1 < imm, set rd = 1; otherwise, rd = 0.
             break;
         case 0x4:
-        //xori
+        //xori Bitwise XOR with Immediate
             processor->R[instruction.itype.rd] = ((Word)processor->R[instruction.itype.rs1]) ^ ((Word)sign_extend_number(instruction.itype.imm, 12));
+            // Bitwise XOR rs1 with sign-extended imm, store in rd
             break;
         case 0x5:
-        //srli and srai
+        //srli (Logical Shift Right Immediate) and srai (Arithmetic Shift Right Immediate)
             switch ((instruction.itype.imm >> 5) & 0x7F ){
                 case 0x0:
                     processor->R[instruction.itype.rd] = ((Word)processor->R[instruction.itype.rs1]) >> ((Word)instruction.itype.imm & 0x1F);
@@ -246,34 +251,38 @@ void execute_itype_except_load(Instruction instruction, Processor *processor) { 
                     processor->R[instruction.itype.rd] = ((sWord)processor->R[instruction.itype.rs1] >> (instruction.itype.imm & 0x1F));
                     break;
                 default:
-                    handle_invalid_instruction(instruction);
+                    handle_invalid_instruction(instruction); // Invalid case
                     exit(-1);
                     break;
             }
             break;
         case 0x6:
-        //ori
+        //ori Bitwise OR with Immediate
             processor->R[instruction.itype.rd] = ((Word)processor->R[instruction.itype.rs1]) | (Word)sign_extend_number(instruction.itype.imm, 12);
+            // Perform bitwise OR and store in rd
             break;
         case 0x7:
-        //andi
+        //andi Bitwise AND with Immediate
             processor->R[instruction.itype.rd] = (processor->R[instruction.itype.rs1]) & sign_extend_number(instruction.itype.imm, 12);
+            // Perform bitwise AND between rs1 and sign-extended imm
             break;
         default:
-            handle_invalid_instruction(instruction);
+            handle_invalid_instruction(instruction); // Any other funct3 is not valid for opcode 0x13
             exit(-1);
             break;
     }
-    processor->PC += 4;
-    processor->R[0] = 0;
+    processor->PC += 4; // increments the program counter (PC) by 4 bytes moves to the next instruction
+    processor->R[0] = 0; // Ensure x0 remains zero
 }
 
+// Handles system call (ecall) instructions based on value in register x10 (a0)
 void execute_ecall(Processor *p, Byte *memory) {
     Register i;
+    // Check value in register x10 (a0), which determines the syscall type
     switch(p->R[10]) {
         case 1: // print an integer
             printf("%d",p->R[11]);
-            p->PC += 4;
+            p->PC += 4; // Move to next instruction
             break;
         case 4: // print a string
             for(i=p->R[11];i<MEMORY_SPACE && load(memory,i,LENGTH_BYTE);i++) {
@@ -294,128 +303,160 @@ void execute_ecall(Processor *p, Byte *memory) {
             exit(-1);
             break;
     }
-    p->R[0] = 0;
+    p->R[0] = 0; // Always keep register x0 set to 0
 }
 
+// Handles branch instructions (e.g., beq, bne)
 void execute_branch(Instruction instruction, Processor *processor) {
-    int taken = 0;
+    int taken = 0; // Flag to indicate if branch is taken
     switch (instruction.sbtype.funct3) {
-        case 0x0: // beq
+        case 0x0: // beq (branch if equal)
             if ((sWord)processor->R[instruction.sbtype.rs1] == (sWord)processor->R[instruction.sbtype.rs2]) {
                 processor->PC += get_branch_offset(instruction);
                 taken = 1;
+                // Compare registers rs1 and rs2 as signed integers
+                // If equal, apply branch offset to PC
             }
             break;
-        case 0x1: // bne
+        case 0x1: // bne (branch if not equal)
             if ((sWord)processor->R[instruction.sbtype.rs1] != (sWord)processor->R[instruction.sbtype.rs2]) {
                 processor->PC += get_branch_offset(instruction);
                 taken = 1;
+                // Compare registers rs1 and rs2 as signed integers
+                // If not equal, apply branch offset to PC
             }
             break;
         default:
+            // Invalid funct3 for branch instruction
             handle_invalid_instruction(instruction);
             exit(-1);
             break;
     }
-    if (!taken) processor->PC += 4;
-    processor->R[0] = 0;
+    if (!taken) processor->PC += 4; // If the branch was not taken, move to the next instruction (normal PC += 4)
+    processor->R[0] = 0; // Always keep register x0 set to 0
 }
 
+// Executes load instructions (e.g., LB, LH, LW, LBU, LHU)
 void execute_load(Instruction instruction, Processor *processor, Byte *memory) {
     Address addr = processor->R[instruction.itype.rs1] + sign_extend_number(instruction.itype.imm, 12);
     switch (instruction.itype.funct3) {
-        case 0x0: // LB
+        case 0x0: // LB (Load Byte, sign-extended)
             processor->R[instruction.itype.rd] = (sByte)load(memory, addr, LENGTH_BYTE);
             break;
-        case 0x1: // LH
+        case 0x1: // LH (Load Half-word, sign-extended)
             processor->R[instruction.itype.rd] = (sHalf)load(memory, addr, LENGTH_HALF_WORD);
             break;
-        case 0x2: // LW
+        case 0x2: // LW (Load Word, sign-extended)
             processor->R[instruction.itype.rd] = (sWord)load(memory, addr, LENGTH_WORD);
             break;
-        case 0x4: // LBU
+        case 0x4: // LBU (Load Byte Unsigned)
             processor->R[instruction.itype.rd] = (Byte)load(memory, addr, LENGTH_BYTE);
             break;
-        case 0x5: // LHU
+        case 0x5: // LHU (Load Half-word Unsigned)
             processor->R[instruction.itype.rd] = (Half)load(memory, addr, LENGTH_HALF_WORD);
             break;
-        default:
+        default: // Invalid funct3 for load
             handle_invalid_instruction(instruction);
             break;
     }
-    processor->PC += 4;
-    processor->R[0] = 0;
+    processor->PC += 4; // Advance the program counter to the next instruction
+    processor->R[0] = 0; // Ensure register x0 remains zero
 }
 
+// Executes store instructions: SB, SH, SW
 void execute_store(Instruction instruction, Processor *processor, Byte *memory) {
+    // Calculate effective memory address:
+    // base address is in rs1, offset is sign-extended from immediate fields
     Address addr = processor->R[instruction.stype.rs1] + sign_extend_number(get_store_offset(instruction), 12);
     switch (instruction.stype.funct3) {
-        case 0x0: // SB
+        case 0x0: // SB (Store Byte)
+            // Store least significant byte of rs2 into memory at addr
             store(memory, addr, LENGTH_BYTE, processor->R[instruction.stype.rs2]);
             break;
-        case 0x1: // SH
+        case 0x1: // SH (Store Half-word)
+            // Store least significant 2 bytes of rs2 into memory at addr
             store(memory, addr, LENGTH_HALF_WORD, processor->R[instruction.stype.rs2]);
             break;
-        case 0x2: // SW
+        case 0x2: // SW (Store Word)
+            // Store full 4 bytes of rs2 into memory at addr
             store(memory, addr, LENGTH_WORD, processor->R[instruction.stype.rs2]);
             break;
-        default:
+        default: // Invalid funct3 for store
             handle_invalid_instruction(instruction);
-            exit(-1);
+            exit(-1); // Exit program
             break;
     }
-    processor->PC += 4;
+    processor->PC += 4; // Move to the next instruction
 }
 
+// Executes JAL (Jump And Link) instruction
 void execute_jal(Instruction instruction, Processor *processor) {
+    // Calculate jump offset using instruction fields
     int offset = get_jump_offset(instruction);
     if (instruction.ujtype.rd > 31) {
-        handle_invalid_instruction(instruction);
-        exit(-1);
+        handle_invalid_instruction(instruction); // Invalid rd, handle error
+        exit(-1); // Exit program due to invalid instruction
     } else {
+        // Store the return address (PC + 4) into rd
         processor->R[instruction.ujtype.rd] = processor->PC + 4;
     }
+    // Update PC to jump target address (PC + offset)
     processor->PC = processor->PC + offset;
-    processor->R[0] = 0;
+    processor->R[0] = 0; // Ensure x0 is always zero
 }
 
+// Executes LUI (Load Upper Immediate) instruction
 void execute_lui(Instruction instruction, Processor *processor) {
+    // rd == 0 is invalid because x0 cannot be written to
     if (instruction.utype.rd == 0) {
-        handle_invalid_instruction(instruction);
+        handle_invalid_instruction(instruction); // Handle invalid rd error
         exit(-1);
     } else {
+        // Load immediate value shifted left by 12 bits into rd
         processor->R[instruction.utype.rd] = instruction.utype.imm << 12;
-        processor->PC += 4;
+        processor->PC += 4; // Advance to next instruction
     }
-    processor->R[0] = 0;
+    processor->R[0] = 0; // Ensure x0 is always zero
 }
 
+// Store a value into memory with the specified alignment (byte, half-word, or word)
 void store(Byte *memory, Address address, Alignment alignment, Word value) {
     if (alignment == LENGTH_BYTE) {
+        // Store the least significant byte of 'value' into memory at 'address'
         memory[address] = value & 0xFF; 
     } else if (alignment == LENGTH_HALF_WORD) {
+        // Store the least significant 2 bytes (16 bits) of 'value' into memory
         memory[address] = value & 0xFF;
         memory[address + 1] = (value >> 8) & 0xFF;
     } else if (alignment == LENGTH_WORD) {
+        // Store all 4 bytes (32 bits) of 'value' into memory sequentially
         memory[address] = value & 0xFF;
         memory[address + 1] = (value >> 8) & 0xFF;
         memory[address + 2] = (value >> 16) & 0xFF;
         memory[address + 3] = (value >> 24) & 0xFF;
     } else {
+        // Invalid alignment value: print error and exit
         printf("Error: Unrecognized alignment %d\n", alignment);
         exit(-1);
     }
 }
 
+// Load a value from memory with the specified alignment (byte, half-word, or word)
 Word load(Byte *memory, Address address, Alignment alignment) {
     if(alignment == LENGTH_BYTE) {
+        // Return a single byte from memory at 'address'
         return memory[address];
     } else if(alignment == LENGTH_HALF_WORD) {
+        // Return two bytes (16 bits) combined as a half-word from memory
         return (memory[address+1] << 8) + memory[address];
+        // Note: lower byte at address, higher byte at address+1
     } else if(alignment == LENGTH_WORD) {
+        // Return four bytes (32 bits) combined as a word from memory
         return (memory[address+3] << 24) + (memory[address+2] << 16)
                + (memory[address+1] << 8) + memory[address];
+        // Bytes combined in order (lowest byte at lowest address)
     } else {
+        // Invalid alignment value: print error and exit
         printf("Error: Unrecognized alignment %d\n", alignment);
         exit(-1);
     }
