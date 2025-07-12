@@ -16,7 +16,7 @@ void head_insert(NodePtr& head, int the_number) {
 void insert(NodePtr after_me, int the_number) {
   NodePtr temp_ptr;
   temp_ptr = new Node;
-  after_me = new Node;
+  after_me = new Node; // Created new Node after_me, to not cause segmentation fault
   temp_ptr->data = the_number;
   temp_ptr->link = after_me->link;
   after_me->link = temp_ptr;
