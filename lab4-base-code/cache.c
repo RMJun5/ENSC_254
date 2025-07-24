@@ -11,13 +11,15 @@
 
 // DO NOT MODIFY THIS FILE. INVOKE AFTER EACH ACCESS FROM runTrace
 void print_result(result r) {
-  if (r.status == CACHE_EVICT)
+  if (r.status == CACHE_EVICT) // Prints the result of a cache access
     printf(" [status: miss eviction, victim_block: 0x%llx, insert_block: 0x%llx]",
            r.victim_block_addr, r.insert_block_addr);
+    // Prints the eviction message with victim and inserted block addresses in hexadecimal
   if (r.status == CACHE_HIT)
-    printf(" [status: hit]");
+    printf(" [status: hit]"); // If the access was a hit, print that it was a hit
   if (r.status == CACHE_MISS)
     printf(" [status: miss, insert_block: 0x%llx]", r.insert_block_addr);
+    // If a miss occurred without eviction, print the inserted block address
 }
 
 /* This is the entry point to operate the cache for a given address in the trace file.
@@ -41,7 +43,6 @@ void print_result(result r) {
  *             address in the return "result" struct. Update miss_count and eviction_count.
  */
 result operateCache(const unsigned long long address, Cache *cache) {
-  /* YOUR CODE HERE */
     result r;
 
     // 1) Find the set index and increment that set's global lru_clock
@@ -66,10 +67,10 @@ result operateCache(const unsigned long long address, Cache *cache) {
             r.insert_block_addr = address_to_block(address, cache);
             cache->miss_count++;
         } else {
-            // 4) No empty line, need to evict one victim line
+            // 4) No empty line was found, need to evict one victim line
             unsigned long long victim_blk = victim_cacheline(address, cache);
 
-            replace_cacheline(victim_blk, address, cache);
+            replace_cacheline(victim_blk, address, cache); // Replace it with a new block
 
             r.status = CACHE_EVICT;
             r.victim_block_addr = victim_blk;
@@ -79,34 +80,29 @@ result operateCache(const unsigned long long address, Cache *cache) {
         }
     }
 
-    return r;
+    return r; // Return the result structure
 }
 
 // HELPER FUNCTIONS USEFUL FOR IMPLEMENTING THE CACHE
 // Given an address, return the block (aligned) address,
 // i.e., byte offset bits are cleared to 0
-unsigned long long address_to_block(const unsigned long long address,
-                                const Cache *cache) {
-  /* YOUR CODE HERE */
+
+// Clears the block offset bits to align address to block base
+unsigned long long address_to_block(const unsigned long long address,const Cache *cache) {
   return address & ~((1ULL << cache->blockBits) - 1ULL);
 }
 
 // Return the cache tag of an address
-unsigned long long cache_tag(const unsigned long long address,
-                             const Cache *cache) {
-  /* YOUR CODE HERE */
+unsigned long long cache_tag(const unsigned long long address,const Cache *cache) {
   return address >> (cache->setBits + cache->blockBits);}
 
 // Return the cache set index of the address
-unsigned long long cache_set(const unsigned long long address,
-                             const Cache *cache) {
-  /* YOUR CODE HERE */
+unsigned long long cache_set(const unsigned long long address,const Cache *cache) {
   return (address >> cache->blockBits) & ((1ULL << cache->setBits) - 1ULL);
 }
 
 // Check if the address is found in the cache. If so, return true. else return false.
 bool probe_cache(const unsigned long long address, const Cache *cache) {
-  /* YOUR CODE HERE */
   unsigned long long set_idx = cache_set(address, cache);
     unsigned long long tag     = cache_tag(address, cache);
 
@@ -123,7 +119,6 @@ bool probe_cache(const unsigned long long address, const Cache *cache) {
 // Access address in cache. Called only if probe is successful.
 // Update the LRU (least recently used) or LFU (least frequently used) counters.
 void hit_cacheline(const unsigned long long address, Cache *cache){
-  /* YOUR CODE HERE */
   unsigned long long set_idx = cache_set(address, cache);
     unsigned long long tag     = cache_tag(address, cache);
 
@@ -150,7 +145,6 @@ void hit_cacheline(const unsigned long long address, Cache *cache){
  * Otherwise, it returns false.  
  */ 
 bool insert_cacheline(const unsigned long long address, Cache *cache) {
-  /* YOUR CODE HERE */
     unsigned long long set_idx = cache_set(address, cache);
     unsigned long long tag     = cache_tag(address, cache);
     unsigned long long blk_addr = address_to_block(address, cache);
@@ -179,9 +173,7 @@ bool insert_cacheline(const unsigned long long address, Cache *cache) {
 // If there is no empty cacheline, this method figures out which cacheline to replace
 // depending on the cache replacement policy (LRU and LFU). It returns the block address
 // of the victim cacheline; note we no longer have access to the full address of the victim
-unsigned long long victim_cacheline(const unsigned long long address,
-                                const Cache *cache) {
-  /* YOUR CODE HERE */
+unsigned long long victim_cacheline(const unsigned long long address,const Cache *cache) {
     unsigned long long set_idx = cache_set(address, cache);
     const Set *set = &cache->sets[set_idx];
 
@@ -221,9 +213,7 @@ unsigned long long victim_cacheline(const unsigned long long address,
  * Remember to update the new cache line's lru_clock based on the global lru_clock in the cache
  * set and initiate the cache line's access_counter.
  */
-void replace_cacheline(const unsigned long long victim_block_addr,
-		       const unsigned long long insert_addr, Cache *cache) {
-  /* YOUR CODE HERE */
+void replace_cacheline(const unsigned long long victim_block_addr,const unsigned long long insert_addr, Cache *cache) {
     unsigned long long set_idx   = cache_set(insert_addr, cache);
     unsigned long long insert_tag = cache_tag(insert_addr, cache);
     unsigned long long insert_block = address_to_block(insert_addr, cache);
@@ -253,7 +243,6 @@ void replace_cacheline(const unsigned long long victim_block_addr,
 // and initialize the cache sets and lines.
 // Initialize the cache name to the given name 
 void cacheSetUp(Cache *cache, char *name) {
-  /* YOUR CODE HERE */
     int numSets = 1 << cache->setBits;
 
     // Allocate memory for the sets
@@ -281,7 +270,6 @@ void cacheSetUp(Cache *cache, char *name) {
 
 // deallocate the memory space for the cache
 void deallocate(Cache *cache) {
-  /* YOUR CODE HERE */
     if (!cache || !cache->sets)
         return;  // nothing to free
 
@@ -303,6 +291,5 @@ void deallocate(Cache *cache) {
 
 // print out summary stats for the cache
 void printSummary(const Cache *cache) {
-  printf("%s hits: %d, misses: %d, evictions: %d\n", cache->name, cache->hit_count,
-         cache->miss_count, cache->eviction_count);
+  printf("%s hits: %d, misses: %d, evictions: %d\n", cache->name, cache->hit_count,cache->miss_count, cache->eviction_count);
 }
