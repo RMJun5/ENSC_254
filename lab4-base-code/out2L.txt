@@ -1,0 +1,6 @@
+L1 hits: 284145, misses: 7557, evictions: 7525
+L1 hits: 284127, misses: 7575, evictions: 7543
+L1 hits: 284226, misses: 7476, evictions: 7444
+L1 hits: 283663, misses: 8039, evictions: 8007
+L1 hits: 276964, misses: 14738, evictions: 14706
+L1 hits: 263226, misses: 28476, evictions: 28444
