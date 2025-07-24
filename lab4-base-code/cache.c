@@ -292,4 +292,8 @@ void deallocate(Cache *cache) {
 // print out summary stats for the cache
 void printSummary(const Cache *cache) {
   printf("%s hits: %d, misses: %d, evictions: %d\n", cache->name, cache->hit_count,cache->miss_count, cache->eviction_count);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 08037ad5cabbefde8da4f4fb355d6adde8102f00
