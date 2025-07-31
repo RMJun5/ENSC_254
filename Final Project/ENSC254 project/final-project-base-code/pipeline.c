@@ -64,12 +64,47 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
   /**
    * YOUR CODE HERE
    */
+  //decode instructions
   uint32_t instruction_bits = ifid_reg.instr_addr;
   decode_instruction(instruction_bits);
   
-  uint8_t opcode = instruction_bits & 0x7F;
-  uint8_t rd = (instruction_bits >> 7) & 0x7F;
-  
+  //read the register instruction's rs1 and rs2, if neccessary, generating imm and updating idex_reg
+  switch(ifid_reg.instr.opcode){
+    //r-type
+    case 0x33:
+    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs1];
+    uint32_t rs2_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs2];
+    break;
+    //i-type
+    case 0x13:
+    uint32_t gen_imm = ifid_reg.instr.itype.imm;
+    switch(ifid_reg.instr.itype.funct3){
+      case 0x0:
+      uint32_t gen_imm = sign_extend_number(ifid_reg.instr.itype.imm,12);
+    }
+    break;
+    //S-type
+    case 0x23:
+    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.stype.rs1];
+    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.stype.rs2];
+    break;
+    //B-type
+    case 0x63:
+    uint32_t rs1_read = regfile_p -> R[ifid_reg.instr.sbtype.rs1];
+    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.sbtype.rs2];
+    break;
+    //U-type
+    case 0x37:
+    uint32_t gen_imm = ifid_reg.instr.utype.imm;
+    break;
+    //J-type
+    case 0x6F:
+    uint32_t gen_imm = ifid_reg.instr.ujtype.imm;
+    break;
+    default:
+      handle_invalid_read;
+      break;
+  }
   
   return idex_reg;
 }
