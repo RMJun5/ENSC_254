@@ -38,8 +38,10 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
   /**
    * YOUR CODE HERE
    */
-   uint32_t instruction_bits = load(memory_p, regfile_t->PC, LENGTH_WORD);
-   
+   uint32_t instruction_bits = load(memory_p, regfile_p->PC, LENGTH_WORD);
+   regfile_p-> PC += 4;
+
+   ifid_reg.instr_addr = instruction_bits;
 
   #ifdef DEBUG_CYCLE
   printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, regfile_p->PC);
@@ -59,6 +61,7 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
   /**
    * YOUR CODE HERE
    */
+  
   return idex_reg;
 }
 
