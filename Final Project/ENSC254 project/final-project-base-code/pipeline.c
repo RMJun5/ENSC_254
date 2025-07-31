@@ -119,6 +119,7 @@ exmem_reg_t stage_execute(idex_reg_t idex_reg, pipeline_wires_t* pwires_p)
   /**
    * YOUR CODE HERE
    */
+  
   return exmem_reg;
 }
 

@@ -30,6 +30,8 @@ typedef struct
   /**
    * Add other fields here
    */
+  uint32_t instruction_bits;
+  uint32_t PC;
 }ifid_reg_t;
 
 typedef struct
@@ -108,6 +110,7 @@ typedef struct
   /**
    * Add other fields here
    */
+  uint32_t  next_pc;           // PC for next instruction fetch
 }pipeline_wires_t;
 
 
