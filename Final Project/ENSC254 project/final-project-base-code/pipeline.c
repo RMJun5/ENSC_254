@@ -42,8 +42,7 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
    
    regfile_p -> PC += 4;
    //update PC with a wire
-   regfile_p->PC = pwires_p->pc_src0;
-
+   ifid_reg.PC = pwires_p->pc_src0;
    ifid_reg.instr_addr = instruction_bits;
 
   #ifdef DEBUG_CYCLE
@@ -67,6 +66,7 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
   //decode instructions
   uint32_t instruction_bits = ifid_reg.instr_addr;
   decode_instruction(instruction_bits);
+  idex_reg.PC = pwires_p -> pc_src0;
   
   //read the register instruction's rs1 and rs2, if neccessary, generating imm and updating idex_reg
   switch(ifid_reg.instr.opcode){
