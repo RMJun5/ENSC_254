@@ -40,7 +40,7 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
    */
    uint32_t instruction_bits = load(memory_p, regfile_p->PC, LENGTH_WORD);
    
-   regfile_p-> PC += 4;
+   regfile_p -> PC += 4;
    //update PC with a wire
    regfile_p->PC = pwires_p->pc_src0;
 

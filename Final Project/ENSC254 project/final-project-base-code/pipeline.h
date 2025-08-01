@@ -41,6 +41,8 @@ typedef struct
   /**
    * Add other fields here
    */
+  uint32_t PC;
+  
 }idex_reg_t;
 
 typedef struct
