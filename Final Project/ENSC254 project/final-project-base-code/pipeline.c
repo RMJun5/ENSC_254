@@ -50,7 +50,7 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
   decode_instruction(instruction_bits);
   #endif
   ifid_reg.instr_addr = regfile_p->PC;
-  return ifid_reg;
+  return ifid_reg; 
 }
 
 /**
@@ -63,47 +63,76 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
   /**
    * YOUR CODE HERE
    */
-  //decode instructions
-  uint32_t instruction_bits = ifid_reg.instr_addr;
-  decode_instruction(instruction_bits);
-  idex_reg.PC = pwires_p -> pc_src0;
+  // 1. Get instruction bits and decoded instruction
+  //uint32_t instr_bits = ifid_reg.instruction_bits;
+  Instruction instr = ifid_reg.instr;
+  // 2. save to idex_reg
+
+  uint8_t rs1 = instr.rtype.rs1;
+  uint8_t rs2 = instr.rtype.rs2;
   
-  //read the register instruction's rs1 and rs2, if neccessary, generating imm and updating idex_reg
-  switch(ifid_reg.instr.opcode){
-    //r-type
+
+  //read register values
+  switch (instr.opcode){
     case 0x33:
-    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs1];
-    uint32_t rs2_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs2];
+    //R-type - rs1,rs2,rd - no imm
+    idex_reg.rs1_val= regfile_p->R[rs1];
+    idex_reg.rs2_val =regfile_p->R[rs2];
+    idex_reg.rd = instr.rtype.rd;
+    //pipeline wires
+    pwires_p->alu_op; /* ALU operation based on funct3/funct7 */
+    pwires_p->reg_write = true;
+    pwires_p->mem_read = false;
+    pwires_p->mem_write = false;
     break;
-    //i-type
     case 0x13:
-    uint32_t gen_imm = ifid_reg.instr.itype.imm;
-    switch(ifid_reg.instr.itype.funct3){
-      case 0x0:
-      uint32_t gen_imm = sign_extend_number(ifid_reg.instr.itype.imm,12);
-    }
+    
+    //I-type/load -rs1, rd - imm
+    idex_reg.rs1_val= regfile_p->R[rs1];
+    idex_reg.rd = instr.itype.rd;    
+    //Generate immediate 
+    idex_reg.imm = sign_extend_number(instr.itype.imm, 12);
+    case 0x03:
+      pwires_p->alu_op; /* ALU add for address calc */
+      pwires_p->reg_write = true;
+      pwires_p->mem_read = true;
+      pwires_p->mem_to_reg = true;
     break;
-    //S-type
     case 0x23:
-    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.stype.rs1];
-    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.stype.rs2];
+    //Store
+    idex_reg.rs1_val= regfile_p->R[rs1];
+    idex_reg.rs2_val = regfile_p->R[rs2];
+    idex_reg.imm5 = sign_extend_number(instr.stype.imm5,12);
+    idex_reg.imm7 = sign_extend_number(instr.stype.imm7,12);
     break;
-    //B-type
     case 0x63:
-    uint32_t rs1_read = regfile_p -> R[ifid_reg.instr.sbtype.rs1];
-    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.sbtype.rs2];
+    //Branch
+    int b_offset = get_branch_offset(instr);
+    idex_reg.rs1_val=regfile_p->R[rs1];
+    idex_reg.rs1_val=regfile_p->R[rs2];
+    idex_reg.imm5 = sign_extend_number(instr.sbtype.imm5, b_offset);
+    idex_reg.imm7 = sign_extend_number(instr.sbtype.imm7, b_offset);
+    //pipeline wires: 
+     pwires_p->branch_taken = idex_reg.condition  /* branch condition */;
+    pwires_p->branch_target = idex_reg.target /* calculated target PC */;
     break;
-    //U-type
     case 0x37:
-    uint32_t gen_imm = ifid_reg.instr.utype.imm;
+    //load upper immediate
+    idex_reg.imm = instr.utype.imm;
     break;
-    //J-type
     case 0x6F:
-    uint32_t gen_imm = ifid_reg.instr.ujtype.imm;
+    //Jump and link
+    int j_offset=get_jump_offset(instr);
+    idex_reg.imm = sign_extend_number(instr.ujtype.imm, j_offset);
+    break;
+    case 0x73:
+    //ECAll
+    print(ECALL_FORMAT);
     break;
     default:
-      handle_invalid_read;
-      break;
+    handle_invalid_instruction(instr);
+    exit(-1);
+    break;
   }
   
   return idex_reg;

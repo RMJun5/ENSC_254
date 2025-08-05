@@ -407,7 +407,7 @@ void execute_jal(Instruction instruction, Processor *processor) {
 
 // Executes LUI (Load Upper Immediate) instruction
 void execute_lui(Instruction instruction, Processor *processor) {
-    // rd == 0 is invalid because x0 cannot be written to
+    // rd == 0 is invalid because x0 cannot be ten to
     if (instruction.utype.rd == 0) {
         handle_invalid_instruction(instruction); // Handle invalid rd error
         exit(-1);

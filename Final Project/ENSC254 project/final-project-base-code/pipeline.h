@@ -41,8 +41,16 @@ typedef struct
   /**
    * Add other fields here
    */
-  uint32_t PC;
-  
+  uint32_t instr_bits;  // Raw instruction bits
+   uint32_t rs1_val;       // Value of rs1 register
+    uint32_t rs2_val;       // Value of rs2 register
+    uint32_t imm;           // Immediate value
+    uint32_t imm5;
+    uint32_t imm7;
+    uint8_t rd;             // Destination register index
+    uint32_t pc;            // Program Counter of this instruction
+  uint32_t condition;
+  uint32_t target;
 }idex_reg_t;
 
 typedef struct
@@ -112,7 +120,13 @@ typedef struct
   /**
    * Add other fields here
    */
-  uint32_t  next_pc;           // PC for next instruction fetch
+    bool branch_taken;    // Was a branch/jump taken?
+    uint32_t branch_target; // Target address if taken
+    uint8_t alu_op;       // What ALU operation to perform
+    bool mem_read;        // Should memory be read?
+    bool mem_write;       // Should memory be written?
+    bool reg_write;       // Should register be written?
+    bool mem_to_reg;      // Should writeback come from memory?
 }pipeline_wires_t;
 
 
