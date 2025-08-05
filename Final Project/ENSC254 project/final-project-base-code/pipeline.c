@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "pipeline.h"
 #include "stage_helpers.h"
+#include <stdint.h>
 
 uint64_t total_cycle_counter = 0;
 uint64_t miss_count = 0;
@@ -13,6 +14,8 @@ uint64_t stall_counter = 0;
 uint64_t branch_counter = 0;
 uint64_t fwd_exex_counter = 0;
 uint64_t fwd_exmem_counter = 0;
+uint64_t mem_access_counter = 0;
+
 
 simulator_config_t sim_config = {0};
 
@@ -32,26 +35,41 @@ void bootstrap(pipeline_wires_t* pwires_p, pipeline_regs_t* pregs_p, regfile_t* 
  * STAGE  : stage_fetch
  * output : ifid_reg_t
  **/ 
+ // MEEEEE
 ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* memory_p)
 {
-  ifid_reg_t ifid_reg = {0};
-  /**
-   * YOUR CODE HERE
-   */
-   uint32_t instruction_bits = load(memory_p, regfile_p->PC, LENGTH_WORD);
-   
-   regfile_p -> PC += 4;
-   //update PC with a wire
-   regfile_p->PC = pwires_p->pc_src0;
+    ifid_reg_t ifid_reg = {0};
+    /**
+     * YOUR CODE HERE
+     */
+    
+    uint32_t instruction_bits = 0;
 
-   ifid_reg.instr_addr = instruction_bits;
-
-  #ifdef DEBUG_CYCLE
-  printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, regfile_p->PC);
-  decode_instruction(instruction_bits);
-  #endif
-  ifid_reg.instr_addr = regfile_p->PC;
-  return ifid_reg;
+    if (regfile_p->PC < MEMORY_SPACE - 3) {  // Check we're not at end of memory
+        instruction_bits = (memory_p[regfile_p->PC + 3] << 24) |
+                          (memory_p[regfile_p->PC + 2] << 16) |
+                          (memory_p[regfile_p->PC + 1] << 8)  |
+                          memory_p[regfile_p->PC];
+    }
+    
+    // If we got all zeros or are beyond program, inject NOP
+    if (instruction_bits == 0) {
+        instruction_bits = 0x00000013; // ADDI x0, x0, 0 (NOP)
+    }
+    
+    ifid_reg.instr = parse_instruction(instruction_bits);
+    ifid_reg.instr_addr = regfile_p->PC;
+    
+    if (!pwires_p->stall_pc) {
+        regfile_p->PC += 4;
+    }
+    
+    #ifdef DEBUG_CYCLE
+    printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, ifid_reg.instr_addr);
+    decode_instruction(instruction_bits);
+    #endif
+    
+    return ifid_reg;
 }
 
 /**
@@ -60,67 +78,134 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
  **/ 
 idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile_t* regfile_p)
 {
-  idex_reg_t idex_reg = {0};
-  /**
-   * YOUR CODE HERE
-   */
-  //decode instructions
-  uint32_t instruction_bits = ifid_reg.instr_addr;
-  decode_instruction(instruction_bits);
-  
-  //read the register instruction's rs1 and rs2, if neccessary, generating imm and updating idex_reg
-  switch(ifid_reg.instr.opcode){
-    //r-type
-    case 0x33:
-    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs1];
-    uint32_t rs2_read = (sWord)regfile_p -> R[ifid_reg.instr.rtype.rs2];
-    break;
-    //i-type
-    case 0x13:
-    uint32_t gen_imm = ifid_reg.instr.itype.imm;
-    switch(ifid_reg.instr.itype.funct3){
-      case 0x0:
-      uint32_t gen_imm = sign_extend_number(ifid_reg.instr.itype.imm,12);
+    idex_reg_t idex_reg = {0};
+
+    // Copy instr and PC
+    Instruction instr = ifid_reg.instr;
+    idex_reg.instr = ifid_reg.instr;
+    idex_reg.instr_addr = ifid_reg.instr_addr;
+
+    // Default: no stall
+    pwires_p->stall_pc = false;
+    pwires_p->stall_ifid = false;
+
+    // Extract source registers based on opcode type
+    uint32_t rs1 = 0, rs2 = 0;
+    switch (instr.opcode) {
+        case 0x33: // R-type
+            rs1 = instr.rtype.rs1;
+            rs2 = instr.rtype.rs2;
+            break;
+        case 0x13: // I-type
+        case 0x03: // Load
+            rs1 = instr.itype.rs1;
+            break;
+        case 0x23: // S-type
+            rs1 = instr.stype.rs1;
+            rs2 = instr.stype.rs2;
+            break;
+        case 0x63: // B-type
+            rs1 = instr.sbtype.rs1;
+            rs2 = instr.sbtype.rs2;
+            break;
+        case 0x37: // LUI
+            // No rs1 or rs2 needed
+            break;
+        default:
+            break;
     }
-    break;
-    //S-type
-    case 0x23:
-    uint32_t rs1_read = (sWord)regfile_p -> R[ifid_reg.instr.stype.rs1];
-    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.stype.rs2];
-    break;
-    //B-type
-    case 0x63:
-    uint32_t rs1_read = regfile_p -> R[ifid_reg.instr.sbtype.rs1];
-    uint32_t rs2_read = regfile_p -> R[ifid_reg.instr.sbtype.rs2];
-    break;
-    //U-type
-    case 0x37:
-    uint32_t gen_imm = ifid_reg.instr.utype.imm;
-    break;
-    //J-type
-    case 0x6F:
-    uint32_t gen_imm = ifid_reg.instr.ujtype.imm;
-    break;
-    default:
-      handle_invalid_read;
-      break;
-  }
-  
-  return idex_reg;
+
+    // Read register file values (default to zero if no source needed)
+    idex_reg.rs1_val = (rs1 != 0) ? regfile_p->R[rs1] : 0;
+    idex_reg.rs2_val = (rs2 != 0) ? regfile_p->R[rs2] : 0;
+
+    // Generate immediate value
+    idex_reg.imm = gen_imm(instr);
+
+    if (instr.opcode == 0x33) {
+    idex_reg.rd = instr.rtype.rd;
+} else if (instr.opcode == 0x13 || instr.opcode == 0x03) {
+    idex_reg.rd = instr.itype.rd;  // likely this fixes the issue
+} else if (instr.opcode == 0x37 || instr.opcode == 0x17) {
+    idex_reg.rd = instr.utype.rd;
+} else {
+    idex_reg.rd = 0;
+}
+
+
+    // Generate control signals (you may want to implement gen_control() in your code)
+    // For now, set reg_write, mem_read, mem_write based on opcode
+
+    switch (instr.opcode) {
+        case 0x33: // R-type
+        case 0x13: // I-type
+        case 0x03: // Load
+        case 0x37: // LUI
+        case 0x17: // AUIPC
+            idex_reg.reg_write = true;
+            break;
+        default:
+            idex_reg.reg_write = false;
+    }
+
+    idex_reg.mem_read = (instr.opcode == 0x03);  // Load
+    idex_reg.mem_write = (instr.opcode == 0x23); // Store
+    idex_reg.mem_to_reg = (instr.opcode == 0x03);  // True for loads, false elsewhere
+
+
+    // Set ALU source: immediate or register (I-type and load use imm)
+    // Assuming you have a signal alu_src for this purpose
+    if (instr.opcode == 0x13 || instr.opcode == 0x03 || instr.opcode == 0x37 || instr.opcode == 0x17) {
+        idex_reg.alu_src = true;
+    } else {
+        idex_reg.alu_src = false;
+    }
+
+    idex_reg.alu_control = gen_alu_control(idex_reg.instr);
+    
+#ifdef DEBUG_CYCLE
+    uint32_t instr_bits = idex_reg.instr.bits;
+    printf("[ID ]: Instruction [%08x]@[%08x]: ", instr_bits, idex_reg.instr_addr);
+    decode_instruction(instr_bits);
+#endif
+
+    // VERY IMPORTANT: actually return the correctly filled struct!
+    return idex_reg;
 }
 
 /**
  * STAGE  : stage_execute
  * output : exmem_reg_t
- **/ 
+ **/
+// MEEEEEE 
 exmem_reg_t stage_execute(idex_reg_t idex_reg, pipeline_wires_t* pwires_p)
 {
   exmem_reg_t exmem_reg = {0};
   /**
    * YOUR CODE HERE
-   */
+   */ 
+    exmem_reg.instr = idex_reg.instr;
+    exmem_reg.instr_addr = idex_reg.instr_addr;
+  exmem_reg.rd = idex_reg.rd;
+
+  uint32_t operand1 = idex_reg.rs1_val; // this will be the 1st operand in the computation
+  uint32_t operand2 = idex_reg.alu_src ? idex_reg.imm : idex_reg.rs2_val; // 2nd operand
   
-  return exmem_reg;
+  exmem_reg.alu_result = execute_alu(operand1, operand2, idex_reg.alu_control);
+  exmem_reg.rs2_val = idex_reg.rs2_val;
+  exmem_reg.reg_write = idex_reg.reg_write;
+  exmem_reg.mem_write = idex_reg.mem_write;
+  exmem_reg.mem_read = idex_reg.mem_read;
+  exmem_reg.mem_to_reg = idex_reg.mem_to_reg;
+
+ #ifdef DEBUG_CYCLE
+    uint32_t instr_bits = idex_reg.instr.bits;
+    printf("[EX ]: Instruction [%08x]@[%08x]: ", instr_bits, idex_reg.instr_addr);
+    decode_instruction(instr_bits);
+#endif
+
+   return exmem_reg;
+
 }
 
 /**
@@ -133,6 +218,46 @@ memwb_reg_t stage_mem(exmem_reg_t exmem_reg, pipeline_wires_t* pwires_p, Byte* m
   /**
    * YOUR CODE HERE
    */
+
+   // Pass through values from EX stage
+    memwb_reg.instr = exmem_reg.instr;
+    memwb_reg.instr_addr = exmem_reg.instr_addr;
+    memwb_reg.alu_result = exmem_reg.alu_result;
+    memwb_reg.rd = exmem_reg.rd;
+    memwb_reg.reg_write = exmem_reg.reg_write;
+    memwb_reg.mem_to_reg = exmem_reg.mem_to_reg;
+    //memwb_reg.pc = exmem_reg.pc;
+
+    // Handle memory operations
+    if (exmem_reg.mem_read) {  // Load instruction
+        if (cache_p != NULL) {
+            result r = operateCache(exmem_reg.alu_result, cache_p);
+            memwb_reg.mem_data = load(memory_p, r.insert_block_addr, LENGTH_WORD);
+        } else {
+            memwb_reg.mem_data = load(memory_p, exmem_reg.alu_result, LENGTH_WORD);
+        }
+        memwb_reg.wb_data = memwb_reg.mem_data;
+    } 
+    else if (exmem_reg.mem_write) {  // Store instruction
+        if (cache_p != NULL) {
+            result r = operateCache(exmem_reg.alu_result, cache_p);
+            store(memory_p, r.insert_block_addr, LENGTH_WORD, exmem_reg.rs2_val);
+        } else {
+            store(memory_p, exmem_reg.alu_result, LENGTH_WORD, exmem_reg.rs2_val);
+        }
+        memwb_reg.wb_data = exmem_reg.alu_result;
+    }
+    else {  // Non-memory instruction
+        memwb_reg.wb_data = exmem_reg.alu_result;
+    }
+
+#ifdef DEBUG_CYCLE
+    uint32_t instr_bits = exmem_reg.instr.bits;
+    printf("[MEM]: Instruction [%08x]@[%08x]: ", instr_bits, exmem_reg.instr_addr);
+    decode_instruction(instr_bits);
+#endif
+
+
   return memwb_reg;
 }
 
@@ -140,11 +265,25 @@ memwb_reg_t stage_mem(exmem_reg_t exmem_reg, pipeline_wires_t* pwires_p, Byte* m
  * STAGE  : stage_writeback
  * output : nothing - The state of the register file may be changed
  **/ 
+// MEEEEEEEE
 void stage_writeback(memwb_reg_t memwb_reg, pipeline_wires_t* pwires_p, regfile_t* regfile_p)
 {
   /**
    * YOUR CODE HERE
    */
+  // only write if destination register is not 0 and if enabled
+#ifdef DEBUG_CYCLE
+    uint32_t instr_bits = memwb_reg.instr.bits;
+    printf("[WB ]: Instruction [%08x]@[%08x]: ", instr_bits, memwb_reg.instr_addr);
+    decode_instruction(instr_bits);
+#endif
+
+
+    if (memwb_reg.reg_write && memwb_reg.rd != 0) {
+        regfile_p->R[memwb_reg.rd] = memwb_reg.mem_to_reg 
+                                    ? memwb_reg.mem_data 
+                                    : memwb_reg.alu_result;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -164,7 +303,7 @@ void cycle_pipeline(regfile_t* regfile_p, Byte* memory_p, Cache* cache_p, pipeli
 
   /* Output               |    Stage      |       Inputs  */
   pregs_p->ifid_preg.inp  = stage_fetch     (pwires_p, regfile_p, memory_p);
-  
+
   pregs_p->idex_preg.inp  = stage_decode    (pregs_p->ifid_preg.out, pwires_p, regfile_p);
 
   pregs_p->exmem_preg.inp = stage_execute   (pregs_p->idex_preg.out, pwires_p);
@@ -205,10 +344,9 @@ void cycle_pipeline(regfile_t* regfile_p, Byte* memory_p, Cache* cache_p, pipeli
    * If more functionality on ecall needs to be added, it can be done
    * by adding more conditions on the value of R[10]
    */
-  if( (pregs_p->memwb_preg.out.instr.bits == 0x00000073) &&
-      (regfile_p->R[10] == 10) )
-  {
-    *(ecall_exit) = true;
-  }
+   if( (pregs_p->memwb_preg.out.instr.bits == 0x00000073) &&
+       (regfile_p->R[10] == 10) )
+   {
+      *(ecall_exit) = true;
+   }
 }
-
