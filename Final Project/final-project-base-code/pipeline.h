@@ -1,6 +1,8 @@
 #ifndef __PIPELINE_H__
 #define __PIPELINE_H__
 ////
+#define DEBUG_REG_TRACE
+#define DEBUG_CYCLE
 
 #include "config.h"
 #include "types.h"
@@ -46,18 +48,6 @@ typedef struct
   /**
    * Add other fields here
    */
-<<<<<<< HEAD
-  uint32_t instr_bits;  // Raw instruction bits
-   uint32_t rs1_val;       // Value of rs1 register
-    uint32_t rs2_val;       // Value of rs2 register
-    uint32_t imm;           // Immediate value
-    uint32_t imm5;
-    uint32_t imm7;
-    uint8_t rd;             // Destination register index
-    uint32_t pc;            // Program Counter of this instruction
-  uint32_t condition;
-  uint32_t target;
-=======
   uint32_t rs1_val;
   uint32_t rs2_val;
   uint32_t rd;
@@ -72,7 +62,6 @@ typedef struct
   bool mem_read;
   bool mem_write;
   bool mem_to_reg;
->>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }idex_reg_t;
 
 typedef struct
@@ -163,15 +152,6 @@ typedef struct
   /**
    * Add other fields here
    */
-<<<<<<< HEAD
-    bool branch_taken;    // Was a branch/jump taken?
-    uint32_t branch_target; // Target address if taken
-    uint8_t alu_op;       // What ALU operation to perform
-    bool mem_read;        // Should memory be read?
-    bool mem_write;       // Should memory be written?
-    bool reg_write;       // Should register be written?
-    bool mem_to_reg;      // Should writeback come from memory?
-=======
   uint32_t forward_1;
   uint32_t forward_2;
 
@@ -182,7 +162,6 @@ typedef struct
     bool stall_ifid;
 
 
->>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }pipeline_wires_t;
 
 

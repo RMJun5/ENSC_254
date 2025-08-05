@@ -38,30 +38,10 @@ void bootstrap(pipeline_wires_t* pwires_p, pipeline_regs_t* pregs_p, regfile_t* 
  // MEEEEE
 ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* memory_p)
 {
-<<<<<<< HEAD
-  ifid_reg_t ifid_reg = {0};
-  /**
-   * YOUR CODE HERE
-   */
-   uint32_t instruction_bits = load(memory_p, regfile_p->PC, LENGTH_WORD);
-   
-   regfile_p -> PC += 4;
-   //update PC with a wire
-   ifid_reg.PC = pwires_p->pc_src0;
-   ifid_reg.instr_addr = instruction_bits;
-
-  #ifdef DEBUG_CYCLE
-  printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, regfile_p->PC);
-  decode_instruction(instruction_bits);
-  #endif
-  ifid_reg.instr_addr = regfile_p->PC;
-  return ifid_reg; 
-=======
     ifid_reg_t ifid_reg = {0};
     /**
      * YOUR CODE HERE
      */
-    
     uint32_t instruction_bits = 0;
 
     if (regfile_p->PC < MEMORY_SPACE - 3) {  // Check we're not at end of memory
@@ -76,8 +56,9 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
         instruction_bits = 0x00000013; // ADDI x0, x0, 0 (NOP)
     }
     
-    ifid_reg.instr = parse_instruction(instruction_bits);
     ifid_reg.instr_addr = regfile_p->PC;
+    ifid_reg.instr = parse_instruction(instruction_bits);
+    
     
     if (!pwires_p->stall_pc) {
         regfile_p->PC += 4;
@@ -89,7 +70,6 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
     #endif
     
     return ifid_reg;
->>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }
 
 /**
@@ -98,85 +78,6 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
  **/ 
 idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile_t* regfile_p)
 {
-<<<<<<< HEAD
-  idex_reg_t idex_reg = {0};
-  /**
-   * YOUR CODE HERE
-   */
-  // 1. Get instruction bits and decoded instruction
-  //uint32_t instr_bits = ifid_reg.instruction_bits;
-  Instruction instr = ifid_reg.instr;
-  // 2. save to idex_reg
-
-  uint8_t rs1 = instr.rtype.rs1;
-  uint8_t rs2 = instr.rtype.rs2;
-  
-
-  //read register values
-  switch (instr.opcode){
-    case 0x33:
-    //R-type - rs1,rs2,rd - no imm
-    idex_reg.rs1_val= regfile_p->R[rs1];
-    idex_reg.rs2_val =regfile_p->R[rs2];
-    idex_reg.rd = instr.rtype.rd;
-    //pipeline wires
-    pwires_p->alu_op; /* ALU operation based on funct3/funct7 */
-    pwires_p->reg_write = true;
-    pwires_p->mem_read = false;
-    pwires_p->mem_write = false;
-    break;
-    case 0x13:
-    
-    //I-type/load -rs1, rd - imm
-    idex_reg.rs1_val= regfile_p->R[rs1];
-    idex_reg.rd = instr.itype.rd;    
-    //Generate immediate 
-    idex_reg.imm = sign_extend_number(instr.itype.imm, 12);
-    case 0x03:
-      pwires_p->alu_op; /* ALU add for address calc */
-      pwires_p->reg_write = true;
-      pwires_p->mem_read = true;
-      pwires_p->mem_to_reg = true;
-    break;
-    case 0x23:
-    //Store
-    idex_reg.rs1_val= regfile_p->R[rs1];
-    idex_reg.rs2_val = regfile_p->R[rs2];
-    idex_reg.imm5 = sign_extend_number(instr.stype.imm5,12);
-    idex_reg.imm7 = sign_extend_number(instr.stype.imm7,12);
-    break;
-    case 0x63:
-    //Branch
-    int b_offset = get_branch_offset(instr);
-    idex_reg.rs1_val=regfile_p->R[rs1];
-    idex_reg.rs1_val=regfile_p->R[rs2];
-    idex_reg.imm5 = sign_extend_number(instr.sbtype.imm5, b_offset);
-    idex_reg.imm7 = sign_extend_number(instr.sbtype.imm7, b_offset);
-    //pipeline wires: 
-     pwires_p->branch_taken = idex_reg.condition  /* branch condition */;
-    pwires_p->branch_target = idex_reg.target /* calculated target PC */;
-    break;
-    case 0x37:
-    //load upper immediate
-    idex_reg.imm = instr.utype.imm;
-    break;
-    case 0x6F:
-    //Jump and link
-    int j_offset=get_jump_offset(instr);
-    idex_reg.imm = sign_extend_number(instr.ujtype.imm, j_offset);
-    break;
-    case 0x73:
-    //ECAll
-    print(ECALL_FORMAT);
-    break;
-    default:
-    handle_invalid_instruction(instr);
-    exit(-1);
-    break;
-  }
-  
-  return idex_reg;
-=======
     idex_reg_t idex_reg = {0};
 
     // Copy instr and PC
@@ -270,7 +171,6 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
 
     // VERY IMPORTANT: actually return the correctly filled struct!
     return idex_reg;
->>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }
 
 /**

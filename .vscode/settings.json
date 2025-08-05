@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "algorithm": "cpp",
-        "utils.h": "c"
+        "utils.h": "c",
+        "type_traits": "c"
     },
     "cmake.ignoreCMakeListsMissing": true
 }
