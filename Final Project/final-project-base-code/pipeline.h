@@ -1,8 +1,9 @@
+#define DEBUG_REG_TRACE
+#define DEBUG_CYCLE
 #ifndef __PIPELINE_H__
 #define __PIPELINE_H__
 ////
-#define DEBUG_REG_TRACE
-#define DEBUG_CYCLE
+
 
 #include "config.h"
 #include "types.h"
@@ -58,6 +59,7 @@ typedef struct
   int alu_src;
   int alu_control;
 
+  bool use_imm;
   bool reg_write;
   bool mem_read;
   bool mem_write;
@@ -72,6 +74,7 @@ typedef struct
    * Add other fields here
    */
   uint32_t alu_result;
+  
   uint32_t rs2_val;
   uint32_t rd;
   uint32_t pc;
@@ -160,8 +163,9 @@ typedef struct
   bool hazard_detected;
       bool stall_pc;
     bool stall_ifid;
-
-
+  bool mem_read;
+  bool mem_write;
+  bool reg_write;
 }pipeline_wires_t;
 
 

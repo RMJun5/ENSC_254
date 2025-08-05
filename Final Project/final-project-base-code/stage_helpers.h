@@ -468,6 +468,18 @@ void detect_hazard(pipeline_regs_t* pregs_p, pipeline_wires_t* pwires_p, regfile
         pwires_p->stall_ifid = false;
     }
 }
+// Helper function to check if an instruction is a NOP (ADDI x0,x0,0)
+bool is_nop_instruction(Instruction instr) {
+    return instr.bits == 0x00000013; // Standard RISC-V NOP
+}
+
+// Helper function to check if the pipeline is empty (all NOPs)
+bool is_pipeline_empty(const pipeline_regs_t* pregs_p) {
+    return is_nop_instruction(pregs_p->ifid_preg.out.instr)
+        && is_nop_instruction(pregs_p->idex_preg.out.instr)
+        && is_nop_instruction(pregs_p->exmem_preg.out.instr)
+        && is_nop_instruction(pregs_p->memwb_preg.out.instr);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
