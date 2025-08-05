@@ -1,10 +1,12 @@
 #ifndef __PIPELINE_H__
 #define __PIPELINE_H__
+////
 
 #include "config.h"
 #include "types.h"
 #include "cache.h"
 #include <stdbool.h>
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Functionality
@@ -18,6 +20,8 @@ extern uint64_t stall_counter;
 extern uint64_t branch_counter;
 extern uint64_t fwd_exex_counter;
 extern uint64_t fwd_exmem_counter;
+extern uint64_t mem_access_counter;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// RISC-V Pipeline Register Types
@@ -30,8 +34,9 @@ typedef struct
   /**
    * Add other fields here
    */
-  uint32_t instruction_bits;
-  uint32_t PC;
+  uint32_t rs1_val;
+  uint32_t rs2_val;
+  uint32_t pc;
 }ifid_reg_t;
 
 typedef struct
@@ -41,6 +46,7 @@ typedef struct
   /**
    * Add other fields here
    */
+<<<<<<< HEAD
   uint32_t instr_bits;  // Raw instruction bits
    uint32_t rs1_val;       // Value of rs1 register
     uint32_t rs2_val;       // Value of rs2 register
@@ -51,6 +57,22 @@ typedef struct
     uint32_t pc;            // Program Counter of this instruction
   uint32_t condition;
   uint32_t target;
+=======
+  uint32_t rs1_val;
+  uint32_t rs2_val;
+  uint32_t rd;
+  int32_t imm;
+  uint32_t pc;                // Program counter
+
+  int alu_op;
+  int alu_src;
+  int alu_control;
+
+  bool reg_write;
+  bool mem_read;
+  bool mem_write;
+  bool mem_to_reg;
+>>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }idex_reg_t;
 
 typedef struct
@@ -60,6 +82,17 @@ typedef struct
   /**
    * Add other fields here
    */
+  uint32_t alu_result;
+  uint32_t rs2_val;
+  uint32_t rd;
+  uint32_t pc;
+
+  bool reg_write; // not sure abt bool value could be int
+  bool mem_read;
+  bool mem_write;
+  bool mem_to_reg;
+  ///
+
 }exmem_reg_t;
 
 typedef struct
@@ -69,6 +102,16 @@ typedef struct
   /**
    * Add other fields here
    */
+  uint32_t rd;
+  uint32_t alu_result;
+  // uint32_t mem_result; // memdata
+  uint32_t mem_data;
+  uint32_t wb_data;
+  uint32_t pc;
+
+  bool reg_write;
+  bool mem_to_reg;
+
 }memwb_reg_t;
 
 
@@ -120,6 +163,7 @@ typedef struct
   /**
    * Add other fields here
    */
+<<<<<<< HEAD
     bool branch_taken;    // Was a branch/jump taken?
     uint32_t branch_target; // Target address if taken
     uint8_t alu_op;       // What ALU operation to perform
@@ -127,12 +171,25 @@ typedef struct
     bool mem_write;       // Should memory be written?
     bool reg_write;       // Should register be written?
     bool mem_to_reg;      // Should writeback come from memory?
+=======
+  uint32_t forward_1;
+  uint32_t forward_2;
+
+  bool      branch_taken;        // Branch decision
+  uint32_t  branch_target; 
+  bool hazard_detected;
+      bool stall_pc;
+    bool stall_ifid;
+
+
+>>>>>>> d5533fe797eb4bb2983ed88dc5d7e3dc821562a6
 }pipeline_wires_t;
 
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Function definitions for different stages
 ///////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * output : ifid_reg_t
@@ -162,5 +219,14 @@ void stage_writeback(memwb_reg_t memwb_reg, pipeline_wires_t* pwires_p, regfile_
 void cycle_pipeline(regfile_t* regfile_p, Byte* memory_p, Cache* cache_p, pipeline_regs_t* pregs_p, pipeline_wires_t* pwires_p, bool* ecall_exit);
 
 void bootstrap(pipeline_wires_t* pwires_p, pipeline_regs_t* pregs_p, regfile_t* regfile_p);
+
+bool is_pipeline_empty(const pipeline_regs_t* regs);
+
+////////
+idex_reg_t make_nop(uint32_t pc);
+
+// Prototype for pipeline_init
+void pipeline_init(pipeline_regs_t* pregs_p, uint32_t init_pc);
+
 
 #endif  // __PIPELINE_H__
