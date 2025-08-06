@@ -53,9 +53,9 @@ Instruction parse_instruction(uint32_t instruction_bits) {
     break;
 
   default:
-  #ifndef TESTING
-    exit(EXIT_FAILURE); // Exit on unknown instruction unless testing
-  #endif
+  // #ifndef TESTING
+  //   exit(EXIT_FAILURE); // Exit on unknown instruction unless testing
+  // #endif
     break;
   }
   return instruction; // Return filled instruction struct
@@ -101,7 +101,8 @@ int get_store_offset(Instruction instruction) {
 // Error Handling functions 
 // Prints message for invalid instruction
 void handle_invalid_instruction(Instruction instruction) {
-  printf("Invalid Instruction: 0x%08x\n", instruction.bits);
+  //printf("Invalid Instruction: 0x%08x\n", instruction.bits);
+  printf("\n");
 }// Print raw instruction as hex if it cannot be parsed
 
 // Prints message for invalid memory access read and exits

@@ -35,49 +35,38 @@ void bootstrap(pipeline_wires_t* pwires_p, pipeline_regs_t* pregs_p, regfile_t* 
  **/ 
 ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* memory_p)
 {
-    static bool reached_end = false; // Only inject a single NOP after code ends
     ifid_reg_t ifid_reg = {0};
+    /**
+     * YOUR CODE HERE
+     */
+    
+    uint32_t instruction_bits = 0;
 
-    // If previously reached end of the program, keep injecting NOPs
-    if (reached_end) {
-        ifid_reg.instr = parse_instruction(0x00000013); // NOP
-        ifid_reg.instr_addr = regfile_p->PC;
-#ifdef DEBUG_CYCLE
-        printf("[IF ]: Instruction [%08x]@[%08x]: ", 0x00000013, regfile_p->PC);
-        decode_instruction(0x00000013);
-#endif
-        return ifid_reg;
+    if (regfile_p->PC < MEMORY_SPACE - 3) {  // Check we're not at end of memory
+        instruction_bits = (memory_p[regfile_p->PC + 3] << 24) |
+                          (memory_p[regfile_p->PC + 2] << 16) |
+                          (memory_p[regfile_p->PC + 1] << 8)  |
+                          memory_p[regfile_p->PC];
     }
-
-    // Only fetch if not stalled
+    
+    // If we got all zeros or are beyond program, inject NOP
+    if (instruction_bits == 0) {
+        instruction_bits = 0x00000013; // ADDI x0, x0, 0 (NOP)
+    }
+    
+    ifid_reg.instr = parse_instruction(instruction_bits);
+    ifid_reg.instr_addr = regfile_p->PC;
+    
     if (!pwires_p->stall_pc) {
-        uint32_t instruction_bits = load(memory_p, regfile_p->PC, LENGTH_WORD);
-
-        // If at end of program or all zeros, inject NOP and set reached_end
-        if (instruction_bits == 0) {
-            reached_end = true;
-            instruction_bits = 0x00000013; // NOP after real instructions
-        }
-
-        ifid_reg.instr = parse_instruction(instruction_bits);
-        ifid_reg.instr_addr = regfile_p->PC;
-
         regfile_p->PC += 4;
-#ifdef DEBUG_CYCLE
-        printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, ifid_reg.instr_addr);
-        decode_instruction(instruction_bits);
-#endif
-        return ifid_reg;
-    } else {
-        // If stalled, inject NOP
-        ifid_reg.instr = parse_instruction(0x00000013);
-        ifid_reg.instr_addr = regfile_p->PC;
-#ifdef DEBUG_CYCLE
-        printf("[IF ]: Instruction [%08x]@[%08x]: ", 0x00000013, regfile_p->PC);
-        decode_instruction(0x00000013);
-#endif
-        return ifid_reg;
     }
+    
+    #ifdef DEBUG_CYCLE
+    printf("[IF ]: Instruction [%08x]@[%08x]: ", instruction_bits, ifid_reg.instr_addr);
+    decode_instruction(instruction_bits);
+    #endif
+    
+    return ifid_reg;
 }
 
 /**
@@ -187,6 +176,7 @@ exmem_reg_t stage_execute(idex_reg_t idex_reg, pipeline_wires_t* pwires_p)
     exmem_reg.mem_read = idex_reg.mem_read;
     exmem_reg.mem_to_reg = idex_reg.mem_to_reg;
 
+
 #ifdef DEBUG_CYCLE
     uint32_t instr_bits = idex_reg.instr.bits;
     printf("[EX ]: Instruction [%08x]@[%08x]: ", instr_bits, idex_reg.instr_addr);
@@ -211,27 +201,6 @@ memwb_reg_t stage_mem(exmem_reg_t exmem_reg, pipeline_wires_t* pwires_p, Byte* m
     memwb_reg.reg_write = exmem_reg.reg_write;
     memwb_reg.mem_to_reg = exmem_reg.mem_to_reg;
 
-    // Handle memory operations
-    if (exmem_reg.mem_read) {  // Load
-        if (cache_p != NULL) {
-            result r = operateCache(exmem_reg.alu_result, cache_p);
-            memwb_reg.mem_data = load(memory_p, r.insert_block_addr, LENGTH_WORD);
-        } else {
-            memwb_reg.mem_data = load(memory_p, exmem_reg.alu_result, LENGTH_WORD);
-        }
-        memwb_reg.wb_data = memwb_reg.mem_data;
-    } else if (exmem_reg.mem_write) {  // Store
-        if (cache_p != NULL) {
-            result r = operateCache(exmem_reg.alu_result, cache_p);
-            store(memory_p, r.insert_block_addr, LENGTH_WORD, exmem_reg.rs2_val);
-        } else {
-            store(memory_p, exmem_reg.alu_result, LENGTH_WORD, exmem_reg.rs2_val);
-        }
-        memwb_reg.wb_data = exmem_reg.alu_result;
-    } else {  // Non-memory instruction
-        memwb_reg.wb_data = exmem_reg.alu_result;
-    }
-
 #ifdef DEBUG_CYCLE
     uint32_t instr_bits = exmem_reg.instr.bits;
     printf("[MEM]: Instruction [%08x]@[%08x]: ", instr_bits, exmem_reg.instr_addr);
@@ -253,10 +222,11 @@ void stage_writeback(memwb_reg_t memwb_reg, pipeline_wires_t* pwires_p, regfile_
     decode_instruction(instr_bits);
 #endif
 
-    if (memwb_reg.reg_write && memwb_reg.rd != 0) {
+    if (memwb_reg.reg_write ) {
         regfile_p->R[memwb_reg.rd] = memwb_reg.mem_to_reg 
                                     ? memwb_reg.mem_data 
                                     : memwb_reg.alu_result;
+        regfile_p->R[0]==0;
     }
 }
 

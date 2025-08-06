@@ -52,7 +52,8 @@ void decode_instruction(uint32_t instruction_bits) {
         default:    // If opcode is not recognized, handle as invalid
             handle_invalid_instruction(instruction);
             break;
-    }
+        }
+
 }
 
 // Handles R-type instructions based on funct3 and funct7
