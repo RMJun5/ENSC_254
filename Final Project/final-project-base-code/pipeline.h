@@ -166,6 +166,8 @@ typedef struct
   bool mem_read;
   bool mem_write;
   bool reg_write;
+  bool prev_is_load;
+  uint32_t prev_rd;
 }pipeline_wires_t;
 
 

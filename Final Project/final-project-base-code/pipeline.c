@@ -76,7 +76,7 @@ ifid_reg_t stage_fetch(pipeline_wires_t* pwires_p, regfile_t* regfile_p, Byte* m
 idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile_t* regfile_p)
 {
     idex_reg_t idex_reg = {0};
-
+    
     // Copy instr and PC
     Instruction instr = ifid_reg.instr;
     idex_reg.instr = instr;
@@ -109,6 +109,14 @@ idex_reg_t stage_decode(ifid_reg_t ifid_reg, pipeline_wires_t* pwires_p, regfile
             break;
         default:
             break;
+    }
+    // Only check for hazard if previous instruction is a load
+    if (pwires_p->prev_is_load && (
+            (rs1 != 0 && rs1 == pwires_p->prev_rd) || 
+            (rs2 != 0 && rs2 == pwires_p->prev_rd))) {
+        pwires_p->stall_pc = true;
+        pwires_p->stall_ifid = true;
+        stall_counter++;
     }
 
     // Read register file values (default to zero if no source needed)
@@ -232,50 +240,67 @@ void stage_writeback(memwb_reg_t memwb_reg, pipeline_wires_t* pwires_p, regfile_
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////
+
 /** 
  * excite the pipeline with one clock cycle
  **/
 void cycle_pipeline(regfile_t* regfile_p, Byte* memory_p, Cache* cache_p, pipeline_regs_t* pregs_p, pipeline_wires_t* pwires_p, bool* ecall_exit)
 {
-#ifdef DEBUG_CYCLE
-    printf("v==============");
-    printf("Cycle Counter = %5ld", total_cycle_counter);
-    printf("==============v\n\n");
-#endif
+  #ifdef DEBUG_CYCLE
+  printf("v==============");
+  printf("Cycle Counter = %5ld", total_cycle_counter);
+  printf("==============v\n\n");
+  #endif
 
-    // process each stage
-    pregs_p->ifid_preg.inp  = stage_fetch     (pwires_p, regfile_p, memory_p);
-    pregs_p->idex_preg.inp  = stage_decode    (pregs_p->ifid_preg.out, pwires_p, regfile_p);
-    pregs_p->exmem_preg.inp = stage_execute   (pregs_p->idex_preg.out, pwires_p);
-    pregs_p->memwb_preg.inp = stage_mem       (pregs_p->exmem_preg.out, pwires_p, memory_p, cache_p);
+  // process each stage
 
-    stage_writeback(pregs_p->memwb_preg.out, pwires_p, regfile_p);
+  /* Output               |    Stage      |       Inputs  */
+  pregs_p->ifid_preg.inp  = stage_fetch     (pwires_p, regfile_p, memory_p);
 
-    // update all the output registers for the next cycle from the input registers in the current cycle
-    pregs_p->ifid_preg.out  = pregs_p->ifid_preg.inp;
-    pregs_p->idex_preg.out  = pregs_p->idex_preg.inp;
-    pregs_p->exmem_preg.out = pregs_p->exmem_preg.inp;
-    pregs_p->memwb_preg.out = pregs_p->memwb_preg.inp;
+  pregs_p->idex_preg.inp  = stage_decode    (pregs_p->ifid_preg.out, pwires_p, regfile_p);
 
-    /////////////////// NO CHANGES BELOW THIS ARE REQUIRED //////////////////////
+  pregs_p->exmem_preg.inp = stage_execute   (pregs_p->idex_preg.out, pwires_p);
 
-    // increment the cycle
-    total_cycle_counter++;
+  pregs_p->memwb_preg.inp = stage_mem       (pregs_p->exmem_preg.out, pwires_p, memory_p, cache_p);
 
-#ifdef DEBUG_REG_TRACE
-    print_register_trace(regfile_p);
-#endif
+                            stage_writeback (pregs_p->memwb_preg.out, pwires_p, regfile_p);
 
-    // check ecall condition
-    if( (pregs_p->memwb_preg.out.instr.bits == 0x00000073) &&
-        (regfile_p->R[10] == 10) )
-    {
-        *(ecall_exit) = true;
-        return;
-    }
+  // update all the output registers for the next cycle from the input registers in the current cycle
+  pregs_p->ifid_preg.out  = pregs_p->ifid_preg.inp;
+  pregs_p->idex_preg.out  = pregs_p->idex_preg.inp;
+  pregs_p->exmem_preg.out = pregs_p->exmem_preg.inp;
+  pregs_p->memwb_preg.out = pregs_p->memwb_preg.inp;
 
-    // NEW: halt pipeline only when all pipeline regs are NOP
-    if (is_pipeline_empty(pregs_p)) {
-        *(ecall_exit) = true;
-    }
+  /////////////////// NO CHANGES BELOW THIS ARE REQUIRED //////////////////////
+
+  // increment the cycle
+  total_cycle_counter++;
+
+  #ifdef DEBUG_REG_TRACE
+  print_register_trace(regfile_p);
+  #endif
+
+  /**
+   * check ecall condition
+   * To do this, the value stored in R[10] (a0 or x10) should be 10.
+   * Hence, the ecall condition is checked by the existence of following
+   * two instructions in sequence:
+   * 1. <instr>  x10, <val1>, <val2> 
+   * 2. ecall
+   * 
+   * The first instruction must write the value 10 to x10.
+   * The second instruction is the ecall (opcode: 0x73)
+   * 
+   * The condition checks whether the R[10] value is 10 when the
+   * `memwb_reg.instr.opcode` == 0x73 (to propagate the ecall)
+   * 
+   * If more functionality on ecall needs to be added, it can be done
+   * by adding more conditions on the value of R[10]
+   */
+   if( (pregs_p->memwb_preg.out.instr.bits == 0x00000073) &&
+       (regfile_p->R[10] == 10) )
+   {
+      *(ecall_exit) = true;
+   }
 }
