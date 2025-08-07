@@ -1,7 +1,17 @@
 {
     "files.associations": {
         "algorithm": "cpp",
-        "utils.h": "c"
+        "utils.h": "c",
+        "type_traits": "c",
+        "optional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "utility": "c"
     },
     "cmake.ignoreCMakeListsMissing": true,
     "C_Cpp.errorSquiggles": "enabled"
