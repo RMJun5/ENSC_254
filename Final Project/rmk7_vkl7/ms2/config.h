@@ -15,9 +15,9 @@
 #define PRINT_STATS		// prints overall stats
 #define MEM_LATENCY 0
 
-// required for MS2: vec_xprod.input (test_simulator_ms2_extended.sh)
-#define PRINT_STATS
-#define MEM_LATENCY 0
+// // required for MS2: vec_xprod.input (test_simulator_ms2_extended.sh)
+// #define PRINT_STATS
+// #define MEM_LATENCY 0
 
 // required for MS3: (test_simulator_ms3.sh)
 // #define DEBUG_REG_TRACE
