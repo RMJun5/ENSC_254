@@ -22,34 +22,41 @@ void write_branch(Instruction instruction);
 
 // Decodes the 32-bit instruction and dispatches it to the proper handler
 void decode_instruction(uint32_t instruction_bits) {
-    Instruction instruction = parse_instruction(instruction_bits);  // Parse into structured format
-
+    // silently return here, the reason to do this is because the pipeline
+    // will be uninitialised for the first 4 cycles and so the call to
+    // `parse_instruction` will fail.
+    if(instruction_bits == 0)
+    {
+        printf("\n");
+        return;
+    }
+    Instruction instruction = parse_instruction(instruction_bits);
     switch(instruction.opcode) {
-        case 0x33: // R-type instructions (e.g., add, sub, mul)
+        case 0x33:
             write_rtype(instruction);
             break;
-        case 0x13: // I-type instructions (except loads)
+        case 0x13:
             write_itype_except_load(instruction);
             break;
-        case 0x03: // Load instructions (e.g., lw, lb, lh)
+        case 0x3:
             write_load(instruction);
             break;
-        case 0x23: // Store instructions (e.g., sw, sb, sh)
+        case 0x23:
             write_store(instruction);
             break;
-        case 0x63: // Branch instructions (e.g., beq, bne)
+        case 0x63:
             write_branch(instruction);
             break;
-        case 0x37: // LUI (load upper immediate)
+        case 0x37:
             print_lui(instruction);
             break;
-        case 0x6F: // JAL (jump and link)
+        case 0x6F:
             print_jal(instruction);
             break;
-        case 0x73: // ECALL (system call)
-            print_ecall();
+        case 0x73:
+            print_ecall(instruction);
             break;
-        default:    // If opcode is not recognized, handle as invalid
+        default: // undefined opcode
             handle_invalid_instruction(instruction);
             break;
     }

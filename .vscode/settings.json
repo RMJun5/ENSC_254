@@ -3,5 +3,6 @@
         "algorithm": "cpp",
         "utils.h": "c"
     },
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "C_Cpp.errorSquiggles": "enabled"
 }
