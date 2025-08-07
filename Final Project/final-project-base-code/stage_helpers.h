@@ -355,7 +355,7 @@ bool gen_branch(uint32_t rs1_val, uint32_t rs2_val, uint32_t funct3)
             return (rs1_val >= rs2_val);
         */
         default:
-            return false; // Invalid funct3
+            return false; // Invalid funct
     }
 }
 

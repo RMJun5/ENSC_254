@@ -166,8 +166,10 @@ typedef struct
   bool mem_read;
   bool mem_write;
   bool reg_write;
-  bool prev_is_load;
   uint32_t prev_rd;
+  uint32_t forward_val_exmem;
+  uint32_t forward_val_memwb;
+  bool forward_val_memwb_is_mem; // true if mem_to_reg == 1
 }pipeline_wires_t;
 
 
